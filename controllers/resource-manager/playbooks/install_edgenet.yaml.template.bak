@@ -1,0 +1,214 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@} 
+    node_ip: {@node_ip@}
+    node_type: {@node_type@}
+    app_name: {@app_name@} 
+    app_version: {@app_version@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+
+  tasks:
+     - name: generate SSH key id_rsa
+       become: yes
+       user:
+         name: "{{ admin_username }}"
+         generate_ssh_key: yes
+         ssh_key_type: rsa
+         ssh_key_bits: 4096
+         ssh_key_file: .ssh/id_rsa
+         ssh_key_passphrase: ""
+         force: no
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: create .certs directory in home directory
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               mkdir $HOME/.certs 2> /dev/null
+               chmod 700 $HOME/.certs
+
+     #- name: installing golang
+     #  become: yes
+     #  become_user: "{{ admin_username }}"
+     #  shell: |
+     #          sudo apt update && sudo apt -y install golang
+     #  when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: upload edgenet files for master node
+       become: yes
+       become_user: "{{ admin_username }}"
+       ansible.builtin.copy:
+         src: "{{ item }}"
+         dest: "/home/{{ admin_username }}/"
+       with_fileglob:
+         - "edgenet/*"
+       ignore_errors: true
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: upload edgenet files for worker nodes
+       become: yes
+       become_user: "{{ admin_username }}"
+       ansible.builtin.copy:
+         src: "{{ item }}"
+         dest: "/home/{{ admin_username }}/"
+       with_fileglob:
+         - "edgenet/vpnpeer.yaml"
+       ignore_errors: true
+       when: node_type == "workervm" or node_type == "workernode"
+
+     - name: convert shell scripts to executable
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               chmod +x /home/{{ admin_username }}/*.sh
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: installing cert-manager
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: wait for cert-manager pods to be ready 
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # remove completed pods
+               KUBECONFIG=~/.kube/config kubectl delete pods --field-selector=status.phase==Succeeded -n cert-manager
+               # check status of remaining pods
+               KUBECONFIG=~/.kube/config kubectl wait --for=condition=Ready pods --all -n cert-manager
+       register: cert_manager_pods_ready
+       until: cert_manager_pods_ready is not failed
+       retries: 50
+       delay: 5
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: cloning edgenet repository to home directory
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               #git clone --depth 1 https://github.com/EdgeNet-project/edgenet.git --branch 60f26ffd5fb3 $HOME/edgenet
+               #git clone https://github.com/EdgeNet-project/edgenet.git $HOME/edgenet
+               git clone https://github.com/swnuom/edgenet.git $HOME/edgenet
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: installing edgenet multitenancy
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl apply -f $HOME/edgenet/build/yamls/kubernetes/multi-tenancy.yaml
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: wait for multitenancy pods to be ready
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # remove completed pods
+               KUBECONFIG=~/.kube/config kubectl delete pods --field-selector=status.phase==Succeeded -n edgenet
+               # check status of remaining pods
+               KUBECONFIG=~/.kube/config kubectl wait --for=condition=Ready pods --all -n edgenet
+       register: multitenancy_pods_ready
+       until: multitenancy_pods_ready is not failed
+       retries: 50
+       delay: 5
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: create/update ssh-key-secret
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create secret generic ssh-key-secret --from-file=id_rsa=$HOME/.ssh/id_rsa --from-file=id_rsa.pub=$HOME/.ssh/id_rsa.pub -n edgenet --dry-run=client -o yaml | kubectl apply -f -
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: create kubeconfig secret
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               $HOME/create-clusterslice-config-secret.sh
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: installing edgenet multi-provider support
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl apply -f $HOME/edgenet/build/yamls/kubernetes/multi-provider.yaml
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: wait for multi-provider pods to be ready
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # remove completed pods
+               KUBECONFIG=~/.kube/config kubectl delete pods --field-selector=status.phase==Succeeded -n edgenet
+               # check status of remaining pods
+               KUBECONFIG=~/.kube/config kubectl wait --for=condition=Ready pods --all -n edgenet
+       register: multiprovider_pods_ready
+       until: multiprovider_pods_ready is not failed
+       retries: 50
+       delay: 5
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: create public user
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sed -i "s#IP#{{ node_ip }}#g" /home/{{ admin_username }}/create-token-user.sh
+               $HOME/create-public-user.sh
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: Extract the fourth number of the node IP 
+       set_fact:
+         fourth_number: "{{ node_ip.split('.')[-1] }}"
+
+     - name: installing and configuring wireguard
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sudo apt update && sudo apt -y install wireguard
+               wg genkey > $HOME/.certs/wireguard-private
+               cat $HOME/.certs/wireguard-private | wg pubkey > $HOME/.certs/wireguard-public
+               echo "[Interface]" > /tmp/edgenetmesh0.conf
+               echo "Address    = 10.183.5.{{ fourth_number }}/20" >> /tmp/edgenetmesh0.conf
+               echo "Address    = fdb4:ae86:ec99:4004::{{ fourth_number }}/64" >> /tmp/edgenetmesh0.conf
+               echo "Address    = fe80::{{ fourth_number }}/64" >> /tmp/edgenetmesh0.conf
+               echo "PrivateKey = $(cat $HOME/.certs/wireguard-private)" >> /tmp/edgenetmesh0.conf
+               echo "ListenPort = 51820" >> /tmp/edgenetmesh0.conf
+               echo "PostUp     = iptables  --append FORWARD --in-interface %i --jump ACCEPT" >> /tmp/edgenetmesh0.conf
+               echo "PostUp     = ip6tables --append FORWARD --in-interface %i --jump ACCEPT" >> /tmp/edgenetmesh0.conf
+               echo "PreDown    = iptables  --delete FORWARD --in-interface %i --jump ACCEPT" >> /tmp/edgenetmesh0.conf
+               echo "PreDown    = ip6tables --delete FORWARD --in-interface %i --jump ACCEPT" >> /tmp/edgenetmesh0.conf
+               sudo cp /tmp/edgenetmesh0.conf /etc/wireguard/
+               sudo systemctl enable --now wg-quick@edgenetmesh0
+
+
+     - name: create VPNPeer custom resource
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sed -i "s#FOURTH#{{ fourth_number }}#g" /home/{{ admin_username }}/vpnpeer.yaml
+               sed -i "s#NODE#{{ node_name }}#g" /home/{{ admin_username }}/vpnpeer.yaml
+
+               sed -i "s#PUBLICKEY#$(cat $HOME/.certs/wireguard-public)#g" /home/{{ admin_username }}/vpnpeer.yaml
+               sed -i "s#IP#{{ node_ip }}#g" /home/{{ admin_username }}/vpnpeer.yaml
+
+     - name: apply VPNPeer custom resource
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl apply -f /home/{{ admin_username }}/vpnpeer.yaml
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: update antrea plugin to use edgenetmesh0
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               wget -P /tmp/ https://github.com/antrea-io/antrea/releases/download/v1.12.2/antrea.yml
+               sed -i 's|transportInterface: ""|transportInterface: edgenetmesh0|g' /tmp/antrea.yml
+               kubectl apply -f /tmp/antrea.yml
+               kubectl delete pods -n kube-system -l app=antrea
+       when: node_type == "mastervm" or node_type == "masternode"

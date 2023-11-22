@@ -1,0 +1,73 @@
+apiVersion: "swn.uom.gr/v1"
+kind: MultiClusterSliceRequest
+metadata:
+  name: mcs
+  namespace: swn
+spec:
+  name: mcs
+  usernamespace: swn
+  credentials:
+    username: clusterslice
+    password: sha-512-encoded-password
+  clusters:
+    - name: ocm
+      deploymentdomain: swntestbed
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          mastertype: "vm"
+        workers:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          workertype: "vm"
+      kubernetes:
+        kubernetestype: "vanilla"
+        networkfabric: "flannel"
+      applications:
+        - name: ocm-hub-init
+          scope: cluster
+          sharefile: "ocm-join-hub.sh"
+        - name: ocm-hub-approve
+          parameters: "{'managed_clusters': '[ocm1,ocm2]'}"
+          scope: cluster
+    - name: ocm1
+      deploymentdomain: lefteris
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          mastertype: "vm"
+        workers:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          workertype: "vm"
+      kubernetes:
+        kubernetestype: "vanilla"
+        networkfabric: "flannel"
+      applications:
+      - name: ocm-managed
+        parameters: "{'hub': 'ocm'}"
+        scope: cluster
+        waitforfile: "ocm-join-hub.sh"
+    - name: ocm2
+      deploymentdomain: cloudlab
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "UBUNTU22-64-STD"
+          osaccount: "lmamatas"
+          mastertype: "pc3000"
+        workers:
+          count: 1
+          osimage: "UBUNTU22-64-STD"
+          osaccount: "lmamatas"
+          workertype: "pc3000"
+      kubernetes:
+        kubernetestype: "vanilla"
+        networkfabric: "flannel"
+      applications:
+      - name: ocm-managed
+        parameters: "{'hub': 'ocm'}"
+        scope: cluster
+        waitforfile: "ocm-join-hub.sh"

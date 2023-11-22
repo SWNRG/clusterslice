@@ -1,0 +1,97 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    node_type: {@node_type@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    app_waitforfile: {@app_waitforfile@}
+    clusterslice_name: {@clusterslice_name@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+    tunnel_interface: eth0
+
+  tasks:
+     - name: download l2s-m git
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               git clone https://github.com/Networks-it-uc3m/L2S-M.git $HOME/'L2S-M'
+
+     - name: upload l2s-m configuration scripts
+       become: yes
+       become_user: "{{ admin_username }}"
+       ansible.builtin.copy:
+         src: "{{ item }}"
+         dest: "/home/{{ admin_username }}/"
+       with_fileglob:
+         - "l2sm/create_vxlan_file.sh"
+
+     - name: convert shell scripts to executable
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               chmod +x /home/{{ admin_username }}/*.sh
+
+     - name: create vxlan interfaces and veth pairs
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               $HOME/create_vxlan_file.sh {{ node_ip }} > $HOME/L2S-M/K8s/provision/vxlans.txt
+               sudo sh $HOME/L2S-M/K8s/provision/set-interfaces.sh {{ tunnel_interface }} $HOME/L2S-M/K8s/provision/vxlans.txt
+
+     - name: Add cron job to run set-interfaces.sh at reboot
+       become: yes
+       ansible.builtin.cron:
+         name: "Configure Virtual Interfaces at Reboot"
+         special_time: reboot
+         job: "$HOME/L2S-M/K8s/provision/set-interfaces.sh {{ tunnel_interface }} $HOME/L2S-M/K8s/provision/vxlans.txt"
+
+     - name: configure master node
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+               kubectl taint nodes --all node-role.kubernetes.io/master-
+               kubectl label nodes {{ node_name }} dedicated=master
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: create virtual interface definitions
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/K8s/interfaces_definitions
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: create appropriate service account
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/operator/deploy/config/
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: create persistent volume
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/operator/deploy/mysql/
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: deploy L2S-M operator
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/operator/deploy/deployOperator.yaml
+       when: node_type == "mastervm" or node_type == "masternode"
+
+     - name: deploy OVS daemonset
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/operator/daemonset
+       when: node_type == "mastervm" or node_type == "masternode"
+
+

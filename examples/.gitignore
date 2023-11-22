@@ -1,0 +1,16 @@
+benchmarking
+computeresources-all.yaml
+computeresources-double-interfaces.yaml
+computeresources.yaml
+slicerequest-pms.yaml
+computeresources-swntestbed.yaml
+slicerequest-edgenet.yaml
+slicerequest-edgenet-nodes.yaml
+multiclusterslicerequest-nephele-liqo.yaml
+slicerequest-benchmarks.yaml
+multiclusterslicerequest-nephele-submariner.yaml
+multiclusterslicerequest-nephele-karmada.yaml
+multiclusterslicerequest-george.yaml
+slicerequest-plain-servers-george.yaml
+slicerequest-plain-servers-george2.yaml
+multiclusterslicerequest-george2.yaml

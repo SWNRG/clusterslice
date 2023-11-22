@@ -1,0 +1,33 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    app_waitforfile: {@app_waitforfile@}
+    hub: {@hub@}
+    clusterslice_name: {@clusterslice_name@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+  tasks:
+     - name: installing clusteradm
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh | bash
+
+     - name: executing multi-cluster join command
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               echo "joining master cluster {{ hub }}"
+               sudo sed -i 's/<cluster_name>/{{ clusterslice_name }}/g' /opt/clusterslice/shared/{{ app_waitforfile }}
+               /opt/clusterslice/shared/{{ app_waitforfile }}
+       register: ocm_join_command
+
+     - debug:
+         msg: "{{ ocm_join_command.stdout }}"

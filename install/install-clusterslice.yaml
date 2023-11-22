@@ -1,0 +1,825 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: swn
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: computeresources.swn.uom.gr
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: swn.uom.gr
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      additionalPrinterColumns:
+        - name: IP
+          type: string
+          jsonPath: .spec.ip
+        - name: ResourceType
+          type: string
+          jsonPath: .spec.resourcetype
+        - name: Status
+          type: string
+          jsonPath: .spec.status
+        - name: Domain
+          type: string
+          jsonPath: .spec.domain
+        - name: Slice
+          type: string
+          jsonPath: .spec.slice
+        - name: Apps
+          type: string
+          jsonPath: .spec.apps
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                name:
+                  type: string
+                ip:
+                  type: string
+                mac:
+                  type: string
+                secondaryip:
+                  type: string
+                  default: ""
+                secondarymac:
+                  type: string
+                  default: ""
+                resourcetype:
+                  type: string
+                  enum:
+                    - cloudserver
+                    - testbed
+                    - bossmaster
+                    - bossworker
+                    - edgenet
+                    - mastervm
+                    - workervm
+                    - masternode
+                    - workernode
+                nodetype:
+                  type: string
+                domain:
+                  type: string
+                  enum:
+                    - ""
+                    - swntestbed
+                    - lefteris
+                    - cloudlab
+                    - athena
+                    - multicluster
+                  default: swntestbed
+                site:
+                  type: string
+                  enum:
+                    - ""
+                    - pg-utah
+                    - apt
+                    - cl-clemson
+                    - cl-utah
+                    - cl-wisconsin
+                  default: ""
+                operator:
+                  type: string
+                  default: ""
+                  enum:
+                    - ""
+                    - resource-manager
+                    - infrastructure-manager-xcpng
+                    - infrastructure-manager-virtualbox
+                    - infrastructure-manager-fed4fire
+                    - infrastructure-manager-cloudlab
+                slice:
+                  type: string
+                  default: ""
+                usernamespace:
+                  type: string
+                  default: ""
+                apps:
+                  type: string
+                  default: ""
+                status:
+                  type: string
+                  enum:
+                    - free
+                    - creating_vm
+                    - allocated
+                    - reserved
+                    - failed
+                    - up
+                    - down
+                    - created
+                    - booting
+                    - os_ready
+                    - os_configured
+                    - os_completed
+                    - kubernetes_base
+                    - kubernetes_master
+                    - kubernetes_worker
+                    - join_worker
+                    - wait_for_plugin
+                    - install_apps
+                  default: free
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: computeresources
+    # singular name to be used as an alias on the CLI and for display
+    singular: computeresource
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: ComputeResource
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - cr
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: slices.swn.uom.gr
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: swn.uom.gr
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      additionalPrinterColumns:
+        #- name: Username
+        #  type: string
+        #  jsonPath: .spec.credentials.username
+        - name: Masters
+          type: string
+          jsonPath: .spec.infrastructure.masters
+        - name: Workers
+          type: string
+          jsonPath: .spec.infrastructure.workers
+        - name: Status
+          type: string
+          jsonPath: .spec.status
+        - name: Output
+          type: string
+          jsonPath: .spec.output
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                name:
+                  type: string
+                duration:
+                  type: string
+                usernamespace:
+                  type: string
+                credentials:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    password:
+                      type: string
+                infrastructure:
+                  type: object
+                  properties:
+                    masters:
+                      type: string
+                      default: "0/0"
+                    workers:
+                      type: string
+                      default: "0/0"
+                kubernetes:
+                  type: object
+                  properties:
+                    kubernetestype:
+                      type: string
+                    version:
+                       type: string
+                    networkfabric:
+                       type: string
+                    networkcidr:
+                       type: string
+                    servicecidr:
+                       type: string
+                updating:
+                  type: boolean
+                  default: false
+                applications:
+                  type: array
+                  nullable: true
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      version:
+                        type: string
+                      parameters:
+                        type: string
+                      sharefile:
+                        type: string
+                      waitforfile:
+                        type: string
+                      scope:
+                        type: string
+                        enum:
+                          - cluster
+                          - masters
+                          - workers
+                          - all
+                        default: cluster
+                      deployed:
+                        type: boolean
+                        default: false
+                deployment:
+                  type: object
+                  properties:
+                    master:
+                      type: array
+                      nullable: true
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          ip:
+                            type: string
+                          mac:
+                            type: string
+                          secondaryip:
+                            type: string
+                          secondarymac:
+                            type: string
+                          resourcetype:
+                            type: string
+                          osimage:
+                            type: string
+                          osaccount:
+                            type: string
+                            default: user
+                          serverip:
+                            type: string
+                          servername:
+                            type: string
+                          serveroperator:
+                            type: string
+                    worker:
+                      type: array
+                      nullable: true
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          ip:
+                            type: string
+                          mac:
+                            type: string
+                          secondaryip:
+                            type: string
+                          secondarymac:
+                            type: string
+                          resourcetype:
+                            type: string
+                          osimage:
+                            type: string
+                          osaccount:
+                            type: string
+                            default: user
+                          serverip:
+                            type: string
+                          servername:
+                            type: string
+                          serveroperator:
+                            type: string
+                status:
+                  type: string
+                  enum:
+                    - defined
+                    - allocating_infrastructure
+                    - suspended
+                    - infrastructure_completed
+                    - allocating_applications
+                    - allocated
+                    - failed
+                  default: defined
+                output:
+                  type: string
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: slices
+    # singular name to be used as an alias on the CLI and for display
+    singular: slice
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: Slice
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - sl
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: slicerequests.swn.uom.gr
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: swn.uom.gr
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      additionalPrinterColumns:
+        #- name: Username
+        #  type: string
+        #  jsonPath: .spec.credentials.username
+        - name: MastersCount
+          type: integer
+          jsonPath: .spec.infrastructure.masters.count
+        - name: WorkersCount
+          type: integer
+          jsonPath: .spec.infrastructure.workers.count
+        - name: KubernetesType
+          type: string
+          jsonPath: .spec.kubernetes.kubernetestype
+        - name: Status
+          type: string
+          jsonPath: .spec.status
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                name:
+                  type: string
+                duration:
+                  type: string
+                usernamespace:
+                  type: string
+                deploymentstrategy:
+                  type: string
+                  enum:
+                    - ""
+                    - firstone
+                    - balanced
+                  default: ""
+                deploymentdomain:
+                  type: string
+                  enum:
+                    - ""
+                    - swntestbed
+                    - lefteris
+                    - multicluster
+                    - cloudlab
+                  default: ""
+                credentials:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    password:
+                      type: string
+                infrastructure:
+                  type: object
+                  properties:
+                    masters:
+                      type: object
+                      properties:
+                        count:
+                          type: integer
+                        osimage:
+                          type: string
+                        osaccount:
+                          type: string
+                          default: user
+                        mastertype:
+                          type: string
+                    workers:
+                      type: object
+                      properties:
+                        count:
+                          type: integer
+                        osimage:
+                          type: string
+                        osaccount:
+                          type: string
+                          default: user
+                        workertype:
+                          type: string
+                updating:
+                  type: boolean
+                  default: false
+                kubernetes:
+                  type: object
+                  properties:
+                    kubernetestype:
+                      type: string
+                      enum:
+                        - ""
+                        - vanilla
+                        - k3s
+                        - k0s
+                        - microk8s
+                    version:
+                      type: string
+                    networkfabric:
+                      type: string
+                      enum:
+                        - ""
+                        - flannel
+                        - multus
+                        - calico
+                        - cilium
+                        - kuberouter
+                        - weavenet
+                        - kubeovn
+                    networkcidr:
+                      type: string
+                      default: "10.244.0.0/16"
+                    servicecidr:
+                      type: string
+                      default: "10.96.0.0/12"
+                applications:
+                  type: array
+                  nullable: true
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        enum:
+                          - argo
+                          - dashboard
+                          - docker
+                          - helm
+                          - kubeview
+                          - metrics-server
+                          - ocm-hub-init
+                          - ocm-hub-approve
+                          - ocm-managed
+                          - liqo-master
+                          - liqo-peer
+                          - submariner-broker
+                          - submariner
+                          - teaching-examples
+                          - benchmarks
+                          - updates
+                      version:
+                        type: string
+                      parameters:
+                        type: string
+                      sharefile:
+                        type: string
+                      waitforfile:
+                        type: string
+                      scope:
+                        type: string
+                        enum:
+                          - cluster
+                          - masters
+                          - workers
+                          - all
+                        default: cluster
+                      deployed:
+                        type: boolean
+                        enum:
+                          - true
+                          - false
+                        default: false
+                status:
+                  type: string
+                  enum:
+                    - defined
+                    - accepted
+                    - failed
+                    - deploying_nodes
+                    - declined
+                  default: defined
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: slicerequests
+    # singular name to be used as an alias on the CLI and for display
+    singular: slicerequest
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: SliceRequest
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - slr
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: multiclusterslicerequests.swn.uom.gr
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: swn.uom.gr
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      additionalPrinterColumns:
+        - name: Namespace
+          type: string
+          jsonPath: .spec.usernamespace
+        - name: Username
+          type: string
+          jsonPath: .spec.credentials.username
+        - name: Status
+          type: string
+          jsonPath: .spec.status
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                name:
+                  type: string
+                duration:
+                  type: string
+                usernamespace:
+                  type: string
+                deploymentstrategy:
+                  type: string
+                  enum:
+                    - ""
+                    - firstone
+                    - balanced
+                  default: ""
+                credentials:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    password:
+                      type: string
+                multiclustering:
+                  type: object
+                  properties:
+                    approach:
+                      type: string
+                      enum:
+                        - ""
+                        - ocm
+                        - liqo
+                      default: ""
+                    mastercluster:
+                      type: string
+                updating:
+                  type: boolean
+                  default: false
+                clusters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      deploymentdomain:
+                        type: string
+                        enum:
+                          - ""
+                          - swntestbed
+                          - lefteris
+                          - multicluster
+                          - cloudlab
+                        default: ""
+                      infrastructure:
+                        type: object
+                        properties:
+                          masters:
+                            type: object
+                            properties:
+                              count:
+                                type: integer
+                              osimage:
+                                type: string
+                              osaccount:
+                                type: string
+                                default: user
+                              mastertype:
+                                type: string
+                          workers:
+                            type: object
+                            properties:
+                              count:
+                                type: integer
+                              osimage:
+                                type: string
+                              osaccount:
+                                type: string
+                                default: user
+                              workertype:
+                                type: string
+                      kubernetes:
+                        type: object
+                        properties:
+                          kubernetestype:
+                            type: string
+                            enum:
+                              - ""
+                              - vanilla
+                              - k3s
+                              - k0s
+                              - microk8s
+                          version:
+                            type: string
+                          networkfabric:
+                            type: string
+                            enum:
+                              - ""
+                              - flannel
+                              - multus
+                              - calico
+                              - cilium
+                              - kuberouter
+                              - weavenet
+                              - kubeovn
+                          networkcidr:
+                            type: string
+                            default: "10.244.0.0/16"
+                          servicecidr:
+                            type: string
+                            default: "10.96.0.0/12"
+                      applications:
+                        type: array
+                        nullable: true
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              enum:
+                                - argo
+                                - dashboard
+                                - docker
+                                - helm
+                                - kubeview
+                                - metrics-server
+                                - ocm-hub-init
+                                - ocm-hub-approve
+                                - ocm-managed
+                                - liqo-master
+                                - liqo-peer
+                                - submariner-broker
+                                - submariner
+                                - teaching-examples
+                                - benchmarks
+                                - updates
+                            version:
+                              type: string
+                            parameters:
+                              type: string
+                            sharefile:
+                              type: string
+                            waitforfile:
+                              type: string
+                            scope:
+                              type: string
+                              enum:
+                                - cluster
+                                - masters
+                                - workers
+                                - all
+                              default: cluster
+                            deployed:
+                              type: boolean
+                              default: false
+                status:
+                  type: string
+                  enum:
+                    - defined
+                    - accepted
+                    - failed
+                    - declined
+                  default: defined
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: multiclusterslicerequests
+    # singular name to be used as an alias on the CLI and for display
+    singular: multiclusterslicerequest
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: MultiClusterSliceRequest
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - mcslr
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: monitor-clusterslice
+  namespace: swn
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitor-clusterslice
+rules:
+- apiGroups:
+  - swn.uom.gr
+  resources:
+  - computeresources
+  - slices
+  - slicerequests
+  - multiclusterslicerequests
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["pods", "pods/exec","secrets"]
+  verbs: ["get", "list", "delete", "patch", "create", "watch"]
+    #- apiGroups: ["batch"]
+    #resources: ["jobs"]
+    #verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: clusterslice-user-monitor
+  namespace: swn
+rules:
+- apiGroups:
+  - swn.uom.gr
+  resources:
+  - computeresources
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: monitor-clusterslice
+  namespace: swn
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: monitor-clusterslice
+subjects:
+- kind: ServiceAccount
+  name: monitor-clusterslice
+  namespace: swn
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slicerequest-operator
+  namespace: swn
+spec:
+  containers:
+  - name: slicerequest-operator
+    image: brecht.swn.uom.gr:5000/slicerequest-operator:latest
+    imagePullPolicy: Always
+    env:
+    - name: LOG_TYPE
+      value: "text"
+      # could also be json
+  serviceAccountName: monitor-clusterslice
+  imagePullSecrets:
+  - name: registry-secret
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slice-operator
+  namespace: swn
+spec:
+  containers:
+  - name: slice-operator
+    image: brecht.swn.uom.gr:5000/slice-operator
+    imagePullPolicy: Always
+    env:
+    - name: LOG_TYPE
+      value: "text"
+      # could also be json
+  serviceAccountName: monitor-clusterslice
+  imagePullSecrets:
+  - name: registry-secret

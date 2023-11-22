@@ -1,0 +1,41 @@
+apiVersion: "swn.uom.gr/v1"
+kind: SliceRequest
+metadata:
+  name: clusterslice
+  namespace: swn
+spec:
+  name: clusterslice
+  usernamespace: swn
+  credentials:
+    username: clusterslice
+    password: sha-512-encoded-password
+  infrastructure:
+    masters:
+      count: 1
+      osimage: "ubuntu-22-clean"
+      mastertype: "vm"
+    workers:
+      count: 5 
+      osimage: "ubuntu-22-clean"
+      workertype: "vm"
+  kubernetes:
+    kubernetestype: "vanilla"
+    version: "1.1"
+    networkfabric: "flannel"
+  applications:
+    - name: argo
+      version: "v3.4.4"
+      parameters: "{'workflow': 'daemon-nginx.yaml'}"
+      scope: cluster
+    - name: helm
+      scope: cluster
+    - name: metrics-server
+      version: "latest"
+      scope: cluster
+    - name: dashboard
+      version: "v2.7.0"
+      scope: cluster
+    - name: kubeview
+      scope: cluster
+    - name: docker
+      scope: all

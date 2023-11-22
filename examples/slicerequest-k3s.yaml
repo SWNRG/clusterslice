@@ -1,0 +1,23 @@
+apiVersion: "swn.uom.gr/v1"
+kind: SliceRequest
+metadata:
+  name: k3s
+  namespace: swn
+spec:
+  name: k3s
+  usernamespace: swn
+  credentials:
+    username: k3s
+    password: sha-512-encoded-password
+  infrastructure:
+    masters:
+      count: 1
+      osimage: "ubuntu-22-clean"
+      mastertype: "vm"
+    workers:
+      count: 1
+      osimage: "ubuntu-22-clean"
+      workertype: "vm"
+  kubernetes:
+    kubernetestype: "k3s"
+    networkfabric: "flannel"

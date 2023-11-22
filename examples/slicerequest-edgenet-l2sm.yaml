@@ -1,0 +1,34 @@
+apiVersion: "swn.uom.gr/v1"
+kind: SliceRequest
+metadata:
+  name: edgenet
+  namespace: swn
+spec:
+  name: edgenet
+  usernamespace: swn
+  deploymentstrategy: firstone
+  deploymentdomain: swntestbed
+  credentials:
+    username: cs
+    password: sha-512-encoded-password
+  infrastructure:
+    masters:
+      count: 1
+      osimage: "ubuntu-22-clean"
+      mastertype: "vm"
+    workers:
+      count: 1
+      osimage: "ubuntu-22-clean"
+      workertype: "vm"
+  kubernetes:
+    kubernetestype: "vanilla"
+    kubernetesversion: "1.23.17-00"
+      #containerdversion: "1.5.11-1"
+      #critoolsversion: "1.25.0-00"
+    networkfabric: "multus"
+  applications:
+    - name: edgenet
+      parameters: "{'edgenetmesh': 'false'}"
+      scope: all
+    - name: l2s-m
+      scope: all

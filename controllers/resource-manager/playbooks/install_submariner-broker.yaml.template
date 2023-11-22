@@ -1,0 +1,42 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    app_sharefile: {@app_sharefile@}
+    clusterslice_name: {@clusterslice_name@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+  tasks:
+     - name: installing submariner cli
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               curl -Ls https://get.submariner.io | bash
+               #curl https://get.submariner.io | VERSION=rc bash
+               export PATH=$PATH:~/.local/bin
+               echo export PATH=\$PATH:~/.local/bin >> ~/.profile
+
+     - name: installing submariner broker
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sudo /home/{{ admin_username }}/.local/bin/subctl deploy-broker --kubeconfig /home/{{ admin_username }}/.kube/config #--globalnet
+               sudo cp broker-info.subm /opt/clusterslice/shared/{{ app_sharefile }}
+               sudo chown {{ admin_username }}:{{ admin_username }} /opt/clusterslice/shared/{{ app_sharefile }}
+
+     - name: join cluster to broker
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # simulate an enter with printf and pipeline (i.e., to select first suggested option to use as a gateway)
+               printf '\n' | sudo /home/{{ admin_username }}/.local/bin/subctl join /opt/clusterslice/shared/{{ app_sharefile }} --clusterid {{ clusterslice_name }} --kubeconfig /home/{{ admin_username }}/.kube/config --cable-driver vxlan #--pod-debug #--natt=true #--cable-driver vxlan
+       register: subctl_status_output
+
+     - name: Show subctl status
+       debug: var=subctl_status_output

@@ -1,0 +1,39 @@
+apiVersion: v1                                       
+kind: Pod                                            
+metadata:                                            
+  name: infrastructure-manager-wisconsin
+  namespace: swn
+spec:                                                
+  restartPolicy: Never
+  containers:                                        
+  - name: infrastructure-manager-wisconsin            
+    image: swnrg/infrastructure-manager-cloudlab
+    env:
+    - name: CLOUDLAB_USER
+      value: "lmamatas"
+    - name: CLOUDLAB_PROJECT
+      value: "uom-coral"
+    - name: CLOUDLAB_CERT_PATH
+      value: "/root/.ssh/cloudlab.pem"
+    - name: CLOUDLAB_PUBKEY_PATH
+      value: "/root/.ssh/id_rsa.pub"
+    - name: CLOUDLAB_EXPERIMENT
+      value: "wisconsin"
+    - name: CLOUDLAB_SITE
+      value: "cl-wisconsin"
+    - name: DOMAIN
+      value: "wisconsin"
+    command: [ "/bin/bash", "-c", "--" ]
+    args: [ "/root/start.sh" ]
+    imagePullPolicy: Always
+    volumeMounts:
+    - name: ssh-keys
+      mountPath: "/etc/ssh"     
+  serviceAccountName: monitor-clusterslice
+  imagePullSecrets:
+  - name: registry-secret
+  volumes:
+  - name: ssh-keys
+    secret:
+      secretName: ssh-secret
+      defaultMode: 0600

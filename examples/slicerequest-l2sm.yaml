@@ -1,0 +1,29 @@
+apiVersion: "swn.uom.gr/v1"
+kind: SliceRequest
+metadata:
+  name: plainslice
+  namespace: swn
+spec:
+  name: plainslice
+  usernamespace: swn
+  deploymentstrategy: firstone
+  deploymentdomain: swntestbed
+  credentials:
+    username: cs
+    password: sha-512-encoded-password
+  infrastructure:
+    masters:
+      count: 1
+      osimage: "ubuntu-22-clean"
+      mastertype: "vm"
+    workers:
+      count: 2
+      osimage: "ubuntu-22-clean"
+      workertype: "vm"
+  kubernetes:
+    kubernetestype: "vanilla"
+    networkfabric: "multus"
+  applications:
+    - name: l2s-m
+      scope: all
+

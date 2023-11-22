@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# copies file to all slice nodes
+# syntax:
+# cpall file_to_copy destination_path
+
+if [ "$#" != "2" ]; then
+  # exit script if parameter is missing
+  echo "Should pass a filename and a destination path as parameters."
+  exit 0
+fi
+
+filename=$1
+dir=$2
+
+# copying file to master nodes (get only hostnames)
+for host in `cat /opt/clusterslice/info/masters | cut -f 2 -d" "`;
+do
+  echo "copying file $filename to master node $host"
+  scp $filename $host:$dir
+done
+
+echo ""

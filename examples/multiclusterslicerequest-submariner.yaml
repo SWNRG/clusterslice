@@ -1,0 +1,52 @@
+apiVersion: "swn.uom.gr/v1"
+kind: MultiClusterSliceRequest
+metadata:
+  name: submariner
+  namespace: swn
+spec:
+  name: submariner
+  usernamespace: swn
+  credentials:
+    username: clusterslice
+    password: sha-512-encoded-password
+  clusters:
+    - name: submariner1
+      deploymentdomain: swntestbed
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          mastertype: "vm"
+        workers:
+          count: 2
+          osimage: "ubuntu-22-clean"
+          workertype: "vm"
+      kubernetes:
+        kubernetestype: "vanilla"
+        networkfabric: "flannel"
+        networkcidr: "10.201.0.0/16"
+        servicecidr: "10.91.0.0/16"
+      applications:
+        - name: submariner-broker
+          scope: cluster
+          sharefile: "broker-info.subm"
+    - name: submariner2
+      deploymentdomain: swntestbed
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          mastertype: "vm"
+        workers:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          workertype: "vm"
+      kubernetes:
+        kubernetestype: "vanilla"
+        networkfabric: "flannel"
+        networkcidr: "10.202.0.0/16"
+        servicecidr: "10.92.0.0/16"
+      applications:
+        - name: submariner
+          scope: cluster
+          waitforfile: "broker-info.subm"

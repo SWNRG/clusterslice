@@ -1,0 +1,48 @@
+# selectivedeployment.yaml
+apiVersion: apps.edgenet.io/v1alpha1
+kind: SelectiveDeployment
+metadata:
+  name: rtt-experiment-destination-emamatas
+  namespace: uom
+spec:
+  workloads:
+    deployment:
+      - apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ping-destination-emamatas
+          namespace: uom
+          labels:
+            app: ping-destination-emamatas
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ping-destination-emamatas
+          template:
+            metadata:
+              labels:
+                app: ping-destination-emamatas
+            spec:
+              tolerations:
+                - key: node-role.kubernetes.io/master
+                  operator: Exists
+                  effect: NoSchedule
+              containers:
+                - name: ping-destination-emamatas
+                  image: busybox
+                  command: ['/bin/sh', '-c', 'sleep infinity']
+                  resources:
+                    limits:
+                      cpu: 50m
+                      memory: 50Mi
+                    requests:
+                      cpu: 50m
+                      memory: 50Mi
+              terminationGracePeriodSeconds: 0
+  selector:
+    - value:
+        - Europe
+      operator: In
+      quantity: 1
+      name: Continent

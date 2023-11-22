@@ -1,0 +1,451 @@
+---
+- hosts: {@host@}
+  become: true
+  gather_facts: no
+  vars:
+    ansible_ssh_args: -tt
+    created_username: {@username@}
+    node_name: {@host@}
+    kubernetestype: {@kubernetestype@}
+    clusterslicename: {@clusterslicename@}
+    networkfabric: {@networkfabric@}
+    networkcidr: {@networkcidr@}
+    servicecidr: {@servicecidr@}
+    testbednamespace: {@testbednamespace@}
+    mastersnum: {@mastersnum@}
+    workersnum: {@workersnum@}
+    apiserver: {@apiserver@}
+    private_registry: "false"
+    private_registry_name: "brecht.swn.uom.gr:5000"
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+# https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/
+    
+  tasks:
+    - name: initialize the cluster
+      shell: kubeadm init --pod-network-cidr={{ networkcidr }} --service-cidr={{ servicecidr }} --apiserver-advertise-address={{ apiserver }} --control-plane-endpoint={{ apiserver }}
+
+      args:
+        chdir: ~{{ created_username }}
+        creates: cluster_initialized.txt
+      #ignore_errors: true
+      when: kubernetestype == "vanilla"
+
+    - name: create .kube directory
+      become: yes
+      become_user: "{{ created_username }}"
+      file:
+        path: "/home/{{ created_username }}/.kube"
+        state: directory
+        owner: "{{ created_username }}"
+        group: "{{ created_username }}"
+        mode: 0700 
+        # was 0755
+      when: kubernetestype == "vanilla" or kubernetestype == "k3s" or kubernetestype == "k0s"
+
+    - name: copies admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/{{ created_username }}/.kube/config
+        remote_src: yes
+        owner: "{{ created_username }}"
+      when: kubernetestype == "vanilla"
+
+    - name: customizing default parameters of kube config
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              sed -i "s/kubernetes-admin@kubernetes/{{ clusterslicename }}-context/g" /home/{{ created_username }}/.kube/config
+              sed -i "s/kubernetes-admin/{{ clusterslicename }}-admin/g" /home/{{ created_username }}/.kube/config
+              sed -i "s/kubernetes/{{ clusterslicename }}/g" /home/{{ created_username }}/.kube/config
+      when: kubernetestype == "vanilla"
+
+    - name: install Pod network for vanilla kubernetes (antrea)
+      become: yes
+      become_user: "{{ created_username }}"
+      # antrea command
+      shell: |
+              #wget -P /tmp/ https://github.com/antrea-io/antrea/releases/download/v1.12.2/antrea.yml
+              #sed -i 's|transportInterface: ""|transportInterface: edgenetmesh0|g' /tmp/antrea.yml
+              #kubectl apply -f /tmp/antrea.yml
+              kubectl apply -f https://github.com/antrea-io/antrea/releases/download/v1.13.1/antrea.yml
+      when: kubernetestype == "vanilla" and networkfabric == "antrea" and private_registry == "false"
+
+    - name: install Pod network for vanilla kubernetes (flannel)
+      become: yes
+      become_user: "{{ created_username }}"
+      # flannel command
+      shell: |
+            if [ "{{ networkcidr }}" = "10.244.0.0/16" ]; then
+              # default CIDR value
+              kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml 
+              #kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+            else
+              curl -L -o /tmp/kube-flannel.yml https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+              #curl -o /tmp/kube-flannel.yml https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+              sed -i 's|10\.244\.0\.0/16|{{ networkcidr }}|g' /tmp/kube-flannel.yml
+              kubectl apply -f /tmp/kube-flannel.yml
+            fi
+      args:
+        chdir: ~{{ created_username }}
+      when: kubernetestype == "vanilla" and networkfabric == "flannel" and private_registry == "false"
+
+    - name: install Pod network for vanilla kubernetes (flannel)
+      become: yes
+      become_user: "{{ created_username }}"
+      # flannel command
+      shell: |
+            if [ "{{ networkcidr }}" = "10.244.0.0/16" ]; then
+              # default CIDR value
+              kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+            else
+              curl -o /tmp/kube-flannel.yml https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+              sed -i 's|10\.244\.0\.0/16|{{ networkcidr }}|g' /tmp/kube-flannel.yml
+              # replace docker.io/flannel with the address of private registry
+              sed -i 's|docker.io/flannel|{{ private_registry_name }}|g' /tmp/kube-flannel.yml
+              kubectl apply -f /tmp/kube-flannel.yml
+            fi
+      args:
+        chdir: ~{{ created_username }}
+      when: kubernetestype == "vanilla" and networkfabric == "flannel" and private_registry == "true"
+
+    - name: install Pod network for vanilla kubernetes (kubeovn)
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              wget https://raw.githubusercontent.com/kubeovn/kube-ovn/release-1.10/dist/images/install.sh
+              #sed -i 's/POD_CIDR=\"10.16.0.0/16\"/POD_CIDR=\"{{ networkcidr }}\"/' install.sh
+              #sed -i 's/SVC_CIDR=\"10.96.0.0/12\"/SVC_CIDR=\"{{ servicecidr }}\"/' install.sh
+              sudo KUBECONFIG=/home/{{ created_username }}/.kube/config bash /home/{{ created_username }}/install.sh 
+              #bash install.sh
+      args:
+        chdir: ~{{ created_username }}
+      #ignore_errors: true
+      when: kubernetestype == "vanilla" and networkfabric == "kubeovn"
+
+    - name: install Pod network for vanilla kubernetes (kuberouter)
+      become: yes
+      become_user: "{{ created_username }}"
+      # flannel command
+      shell: kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml
+      args:
+        chdir: ~{{ created_username }}
+      #ignore_errors: true
+      when: kubernetestype == "vanilla" and networkfabric == "kuberouter"
+
+    - name: install cilium CLI
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/master/stable.txt)
+              CLI_ARCH=amd64
+              if [ "$(uname -m)" = "aarch64" ]; then CLI_ARCH=arm64; fi
+              curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+              sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+              sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
+              rm cilium-linux-${CLI_ARCH}.tar.gz
+              rm cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+      args:
+        chdir: ~{{ created_username }}
+      #ignore_errors: true
+      when: (kubernetestype == "vanilla" or kubernetestype == "k3s") and networkfabric == "cilium"
+
+    - name: install Pod network for vanilla kubernetes (cilium)
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: cilium install
+      args:
+        chdir: ~{{ created_username }}
+      #ignore_errors: true
+      when: kubernetestype == "vanilla" and networkfabric == "cilium"
+
+    - name: install Pod network for vanilla kubernetes (weavenet)
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+              kubectl patch ds weave-net -n kube-system --type json -p '[
+               {
+                 "op": "add",
+                 "path": "/spec/template/spec/containers/0/env/2",
+                 "value": {
+                   "name": "IPALLOC_RANGE",
+                   "value": "{{ networkcidr }}"
+                 }
+               }
+              ]'
+      args:
+        chdir: ~{{ created_username }}
+      #ignore_errors: true
+      register: weavenetvanilla
+      until: weavenetvanilla is not failed
+      retries: 3
+      delay: 60
+      when: kubernetestype == "vanilla" and networkfabric == "weavenet"
+
+    - name: install Pod network for vanilla kubernetes (multus)
+      become: yes
+      become_user: "{{ created_username }}"
+      # installs first flannel
+      shell: |
+              kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+              git clone https://github.com/k8snetworkplumbingwg/multus-cni.git /tmp/multus-cni
+              cat /tmp/multus-cni/deployments/multus-daemonset-thick.yml | kubectl apply -f -
+      args:
+        chdir: ~{{ created_username }}
+      when: kubernetestype == "vanilla" and networkfabric == "multus"
+
+    - name: install Pod network for vanilla kubernetes (calico)
+      become: yes
+      become_user: "{{ created_username }}"
+      # installs first flannel
+      shell: |
+              kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
+              curl https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/custom-resources.yaml -O
+              # should update cidr pool configuration
+              sed -i 's/      cidr: 192.168.0.0/      cidr: 10.244.0.0/' custom-resources.yaml
+              kubectl create -f custom-resources.yaml
+      args:
+        chdir: ~{{ created_username }}
+      when: kubernetestype == "vanilla" and networkfabric == "calico"
+      
+    - name: Get the token for joining the worker nodes
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              kubeadm token create  --print-join-command > /tmp/{{ clusterslicename }}-kubernetes_join_command 
+              cat /tmp/{{ clusterslicename }}-kubernetes_join_command
+      register: kubernetes_join_command
+      when: kubernetestype == "vanilla"
+
+    - name: Copy vanilla kubernetes join command to local file.
+      become: false
+      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="{{ clusterslicename }}-kubernetes_join_command" mode=0777
+      when: kubernetestype == "vanilla"
+
+    #- debug:
+    #    msg: "{{ kubernetes_join_command.stdout }}"
+
+    - name: install k0s master node with kuberouter network fabric
+      become: true
+      shell: |
+              curl -sSLf https://get.k0s.sh | sudo sh
+              k0s default-config > /tmp/k0s.yaml
+              k0s install controller -c /tmp/k0s.yaml
+              systemctl start k0scontroller
+              # wait 5 seconds
+              sleep 5
+      when: kubernetestype == "k0s" and networkfabric == "kuberouter"
+
+    - name: install k0s master node with calico network fabric
+      become: true
+      shell: |
+              curl -sSLf https://get.k0s.sh | sudo sh
+              k0s default-config > /tmp/k0s.yaml
+              sed -i 's/provider: .*/provider: calico/' /tmp/k0s.yaml
+              k0s install controller -c /tmp/k0s.yaml
+              systemctl start k0scontroller
+              # wait 5 seconds
+              sleep 5
+      when: kubernetestype == "k0s" and networkfabric == "calico"
+
+    - name: install k3s master node with flannel network fabric
+      shell: |
+              curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" INSTALL_K3S_EXEC="--cluster-cidr={{ networkcidr }} --disable-network-policy --disable=traefik" sh -
+      when: kubernetestype == "k3s" and networkfabric == "flannel"
+
+    - name: install k3s master node for calico or cilium network fabric
+      shell: |
+              curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" INSTALL_K3S_EXEC="--flannel-backend=none --cluster-cidr={{ networkcidr }} --disable-network-policy --disable=traefik" sh -
+      when: kubernetestype == "k3s" and (networkfabric == "calico" or networkfabric == "cilium") 
+
+    - name: enable calico network fabric for microk8s
+      shell: |
+              echo "calico is the default network fabric for microk8s"
+              # wait for plugin to finish
+              microk8s kubectl wait --for=condition=Ready pods --all -n kube-system
+              # enable dns and storage plugins
+              microk8s enable dns
+              microk8s enable hostpath-storage
+      when: kubernetestype == "microk8s" and networkfabric == "calico"
+
+    - name: enable flannel network fabric for microk8s
+      become: yes
+      shell: |
+              microk8s disable ha-cluster --force
+              # enable dns and storage plugins
+              microk8s enable dns
+              microk8s enable hostpath-storage
+      when: kubernetestype == "microk8s" and networkfabric == "flannel"
+
+    - name: enable kubeovn network fabric for microk8s
+      shell: |
+              microk8s enable kube-ovn --force
+              # sleep five seconds, so all pods will be triggered
+              sleep 5
+              # wait for plugin to finish
+              microk8s kubectl wait --for=condition=Ready pods --all -n kube-system
+              # enable dns and storage plugins
+              microk8s enable dns
+              microk8s enable hostpath-storage
+      when: kubernetestype == "microk8s" and networkfabric == "kubeovn"
+
+    - name: install Pod network for k3s (calico)
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
+              curl https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/custom-resources.yaml -O
+              # should update cidr pool configuration
+              sed -i 's/      cidr: 192.168.0.0/      cidr: 10.244.0.0/' custom-resources.yaml
+              kubectl create -f custom-resources.yaml
+      args:
+        chdir: ~{{ created_username }}
+      register: k3scalico
+      until: k3scalico is not failed
+      retries: 3
+      delay: 60
+      when: kubernetestype == "k3s" and networkfabric == "calico"
+
+    - name: creating microk8s join command file
+      become: yes
+      shell: |
+              # wait for control plane to be ready
+              microk8s status --wait-ready > /dev/null 2> /dev/null
+              # should add all worker nodes
+              # Iterate over the number of workers
+              workers_num={{ workersnum }}
+              i=1
+              if [ "$workers_num" -gt 0 ]; then
+                while [ "$i" -le "$workers_num" ]; do
+                  echo "$(microk8s add-node --format short | head -1) --worker" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+                  i=$((i+1))
+                done
+              fi
+              cat /tmp/{{ clusterslicename }}-kubernetes_join_command
+      register: microk8s_join_command
+      when: kubernetestype == "microk8s"
+
+    - name: Copy microk8s join command to local file.
+      become: false
+      local_action: copy content="{{ microk8s_join_command.stdout }}" dest="{{ clusterslicename }}-kubernetes_join_command" mode=0777
+      when: kubernetestype == "microk8s"
+
+    - name: creating k3s join command file
+      become: yes
+      shell: | 
+              echo "curl -sfL https://get.k3s.io | K3S_URL=https://{{ node_name }}:6443 K3S_TOKEN=`sudo cat /var/lib/rancher/k3s/server/node-token` sh -" > /tmp/{{ clusterslicename }}-kubernetes_join_command
+              cat /tmp/{{ clusterslicename }}-kubernetes_join_command
+      register: k3s_join_command
+      when: kubernetestype == "k3s"
+
+    - name: Copy k3s join command to local file.
+      become: false
+      local_action: copy content="{{ k3s_join_command.stdout_lines[0] }}" dest="{{ clusterslicename }}-kubernetes_join_command" mode=0777
+      when: kubernetestype == "k3s"
+
+    - name: creating k0s join command file
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              sudo k0s token create --role=worker > /tmp/token.txt
+              echo "#!/bin/bash" > /tmp/{{ clusterslicename }}-kubernetes_join_command
+              echo "# create token file" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+              echo "echo \"$(cat /tmp/token.txt)\" > /tmp/token.txt" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+              echo "# download k0s" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+              echo "curl -sSLf https://get.k0s.sh | sudo sh" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+              echo "# join worker node" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+              echo "sudo k0s install worker --token-file /tmp/token.txt" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+              echo "sudo systemctl start k0sworker" >> /tmp/{{ clusterslicename }}-kubernetes_join_command
+              cat /tmp/{{ clusterslicename }}-kubernetes_join_command
+      register: k0s_join_command
+      when: kubernetestype == "k0s"
+
+    - name: Copy k0s join command to local file.
+      become: false
+      local_action: copy content="{{ k0s_join_command.stdout }}" dest="{{ clusterslicename }}-kubernetes_join_command" mode=0777
+      when: kubernetestype == "k0s"
+
+    - name: Create secret from kubernetes join command
+      become: no
+      delegate_to: localhost
+      shell: |
+              # if a master node is successfully installed, then create a secret with cluster join command
+              # remove first the secret, if it already exist
+              kubectl delete secret {{ clusterslicename }}-join-secret -n {{ testbednamespace }} 2> /dev/null
+              kubectl create secret generic {{ clusterslicename }}-join-secret --from-file={{ clusterslicename }}-kubernetes_join_command -n {{ testbednamespace }}   
+      register: secret_created
+      when: clusterslicename != "standalone"
+
+    - name: Sharing kubernetes join command
+      delegate_to: localhost
+      shell: |
+              chmod +x /opt/clusterslice/playbooks/{{ clusterslicename }}-kubernetes_join_command
+              cp /opt/clusterslice/playbooks/{{ clusterslicename }}-kubernetes_join_command /opt/clusterslice/shared/
+      when: clusterslicename == "standalone"
+
+    - debug: var=secret_created.stdout_lines
+      when: clusterslicename != "standalone"
+
+    - name: copies kube config for k3s
+      become: yes
+      copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /home/{{ created_username }}/.kube/config
+        remote_src: yes
+        owner: "{{ created_username }}"
+      when: kubernetestype == "k3s"
+
+    - name: copies kube config for k0s
+      become: yes
+      copy:
+        src: /var/lib/k0s/pki/admin.conf
+        dest: /home/{{ created_username }}/.kube/config
+        remote_src: yes
+        owner: "{{ created_username }}"
+      when: kubernetestype == "k0s"
+
+    - name: create kubectl alias for k3s and k0s
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              grep "export KUBECONFIG=~/.kube/config" ~/.bashrc || echo "export KUBECONFIG=~/.kube/config" >> ~/.bashrc
+              grep "alias kc='kubectl'" ~/.bashrc || echo "alias kc='kubectl'" >> ~/.bashrc
+      when: kubernetestype == "k3s" or kubernetestype == "k0s"
+
+    - name: create kubectl alias for microk8s
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              grep "alias kubectl='microk8s kubectl'" ~/.bashrc || echo "alias kubectl='microk8s kubectl'" >> ~/.bashrc
+      when: kubernetestype == "microk8s" 
+
+    - name: create kubectl alias for vanilla kubernetes
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              grep "alias kc='kubectl'" ~/.bashrc || echo "alias kc='kubectl'" >> ~/.bashrc
+      when: kubernetestype == "vanilla"
+
+#    - name: wait for kubernetes master node to be ready
+#      become: yes
+#      become_user: "{{ created_username }}"
+#      shell: |
+#              kubectl wait node --all --for condition=ready --timeout=600s
+#      register: nodes_ready
+#      when: kubernetestype == "vanilla"
+#
+#    - debug: var=nodes_ready.stdout_lines
+#      when: kubernetestype == "vanilla"
+#
+    #- name: wait for k3s master node to be ready
+    #  become: yes
+    #  shell: |
+              # should execute as root
+    #          sudo kubectl wait node --all --for condition=ready --timeout=600s
+    #  register: k3snodes_ready
+    #  when: kubernetestype == "k3s"
+#
+    #- debug: var=k3snodes_ready.stdout_lines
+    #  when: kubernetestype == "k3s"

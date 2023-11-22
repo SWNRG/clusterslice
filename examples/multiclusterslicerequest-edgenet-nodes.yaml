@@ -1,0 +1,44 @@
+apiVersion: "swn.uom.gr/v1"
+kind: MultiClusterSliceRequest
+metadata:
+  name: edgenet
+  namespace: swn
+spec:
+  name: edgenet
+  usernamespace: swn
+  deploymentstrategy: balanced
+  credentials:
+    username: clusterslice
+    password: sha-512-encoded-password
+  clusters:
+    - name: edgenet1
+      deploymentdomain: swntestbed
+      infrastructure:
+        nodes:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          nodetype: "vm"
+      applications:
+        - name: edgenet-nodes
+          scope: all
+    - name: edgenet2
+      deploymentdomain: lefteris
+      infrastructure:
+        nodes:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          nodetype: "vm"
+      applications:
+        - name: edgenet-nodes
+          scope: all
+    - name: edgenet3
+      deploymentdomain: cloudlab
+      infrastructure:
+        nodes:
+          count: 1
+          osimage: "UBUNTU22-64-STD"
+          osaccount: "lmamatas"
+          nodetype: "pc3000"
+      applications:
+        - name: edgenet-nodes
+          scope: all

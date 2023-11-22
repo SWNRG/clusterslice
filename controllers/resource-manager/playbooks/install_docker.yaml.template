@@ -1,0 +1,43 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    kubernetes_type: {@kubernetes_type@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+    #ansible_ssh_args: -tt
+
+  tasks:
+     - name: setup docker repository
+       block:
+         - name: get docker gpg key
+           become: true
+           shell:
+             cmd: curl https://download.docker.com/linux/ubuntu/gpg > /usr/share/keyrings/docker-archive-keyring-armored.gpg
+         - name: CMD - process docker key
+           become: true
+           shell:
+             cmd: cat /usr/share/keyrings/docker-archive-keyring-armored.gpg | gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+         - name: configure docker apt source
+           become: true
+           apt_repository:
+             repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable"
+             state: present
+       when: kubernetes_type == "none"
+
+     - name: install docker
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sudo apt-get -y install docker-ce docker-ce-cli
+               sudo usermod -aG docker user
+               sudo usermod -aG docker {{ admin_username }}
+       register: dockerresult
+       until: "dockerresult is not failed"
+       retries: 10
+       delay: 60

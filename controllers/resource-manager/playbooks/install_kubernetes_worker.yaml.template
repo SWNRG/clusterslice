@@ -1,0 +1,70 @@
+---
+- hosts: {@host@}
+  become: true
+  gather_facts: no
+  vars:
+    created_username: {@username@}
+    kubernetestype: {@kubernetestype@}
+    networkfabric: {@networkfabric@}
+
+# https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/
+    
+  tasks:
+   - name: Copy join command from Ansiblehost to the worker nodes.
+     become: yes
+     copy:
+       src: kubernetes_join_command
+       dest: /tmp/kubernetes_join_command
+       mode: 0777
+
+   - name: Join the Worker node to the cluster (k3s or k0s or microk8s).
+     become: yes
+     become_user: "{{ created_username }}"
+     command: sh /tmp/kubernetes_join_command
+     register: join_output
+     when: kubernetestype == "k3s" or kubernetestype == "k0s"
+
+   - name: disable ha-cluster for microk8s flannel (workers should also disable it)
+     become: yes
+     shell: |
+             microk8s disable ha-cluster --force
+     when: kubernetestype == "microk8s" and networkfabric == "flannel"
+
+   #- name: enable kubeovn for microk8s (workers should also enable it)
+   #  become: yes
+   #  shell: |
+   #          microk8s enable kube-ovn --force
+   #  when: kubernetestype == "microk8s" and networkfabric == "kubeovn"
+
+   - name: Join the Worker node to the cluster (microk8s).
+     become: yes
+     become_user: "{{ created_username }}"
+     shell: |
+             last_char=$(tail -c 1 /tmp/kubernetes_join_command 2> /dev/null)
+             if [ "$last_char" != "" ] && [ "$last_char" != "\n" ]; then
+               printf "\n" >> /tmp/kubernetes_join_command
+             fi
+             # Added a new line character at the end of the file, in the case it does not exist
+             # Get the first valid token, ignore others
+             success=false
+             # Read commands line by line from the file
+             while IFS= read -r command; do
+               $command 2> /dev/null && success=true && break
+             done < /tmp/kubernetes_join_command 
+             # Return 0 if any of the commands succeeded
+             if [ $success = true ]; then
+               exit 0
+             else
+               exit 1
+             fi
+     register: join_output
+     when: kubernetestype == "microk8s"
+
+   - name: Join the Worker node to the cluster (vanilla).
+     become: yes
+     command: sh /tmp/kubernetes_join_command
+     register: join_output
+     when: kubernetestype == "vanilla"
+
+   - name: Show the output of cluster join task
+     debug: var=join_output

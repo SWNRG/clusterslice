@@ -1,0 +1,39 @@
+apiVersion: v1                                       
+kind: Pod                                            
+metadata:                                            
+  name: infrastructure-manager-wall2
+  namespace: swn
+spec:                                                
+  restartPolicy: Never
+  containers:                                        
+  - name: infrastructure-manager-wall2         
+    image: brecht.swn.uom.gr:5000/infrastructure-manager-cloudlab
+    env:
+    - name: CLOUDLAB_USER
+      value: "lmamatas"
+    - name: CLOUDLAB_PROJECT
+      value: "uom-coral"
+    - name: CLOUDLAB_CERT_PATH
+      value: "/root/.ssh/cloudlab.pem"
+    - name: CLOUDLAB_PUBKEY_PATH
+      value: "/root/.ssh/id_rsa.pub"
+    - name: CLOUDLAB_EXPERIMENT
+      value: "wall2"
+    - name: CLOUDLAB_SITE
+      value: "pg-wall2"
+    - name: DOMAIN
+      value: "wall2"
+    command: [ "/bin/bash", "-c", "--" ]
+    args: [ "/root/start.sh" ]
+    imagePullPolicy: Always
+    volumeMounts:
+    - name: ssh-keys
+      mountPath: "/etc/ssh"     
+  serviceAccountName: monitor-clusterslice
+  imagePullSecrets:
+  - name: registry-secret
+  volumes:
+  - name: ssh-keys
+    secret:
+      secretName: ssh-secret
+      defaultMode: 0600

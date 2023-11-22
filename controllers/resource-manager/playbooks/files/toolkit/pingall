@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# pinging all slice hosts
+# syntax:
+# pingall 
+
+if [ "$#" != "0" ]; then
+  # exit script if parameter is missing
+  echo "No parameter is needed."
+  exit 0
+fi
+
+# copying file to master nodes (get only hostnames)
+for host in `cat /opt/clusterslice/info/masters | cut -f 2 -d" "`;
+do
+  echo "***********************************"
+  echo "pinging master node $host"
+  echo "***********************************"
+  ping -c 1 $host
+done
+
+echo ""
+
+# copying file to worker nodes
+for host in `cat /opt/clusterslice/info/workers | cut -f 2 -d" "`;
+do
+  echo "***********************************"
+  echo "pinging worker node $host"
+  echo "***********************************"
+  ping -c 1 $host
+done
+
+echo ""

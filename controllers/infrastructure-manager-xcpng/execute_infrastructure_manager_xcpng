@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# remove existing infrastructure-manager-xcpng container, in the case it exists
+docker stop infrastructure-manager-xcpng 2> /dev/null
+docker remove infrastructure-manager-xcpng 2> /dev/null
+
+docker run -d --name infrastructure-manager-xcpng -v /$HOME/.ssh:/root/.ssh/ brecht.swn.uom.gr:5000/infrastructure-manager-xcpng

@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: admin
+  namespace: uom
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: emamatas@uom.edu.gr
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: sotskap@uom.edu.gr
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edgenet:tenant-admin

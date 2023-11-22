@@ -1,0 +1,199 @@
+---
+- hosts: {@node@}
+  become: true
+  gather_facts: no
+  vars:
+    created_username: {@username@}
+    created_password: {@password@}
+    node_name: {@node@}
+    private_registry: "true"
+    private_registry_name: "brecht.swn.uom.gr:5000"
+    kubernetestype: {@kubernetestype@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+
+  tasks:
+    - name: Disable automatic updates
+      lineinfile:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        regexp: '^APT::Periodic::(Update-Package-Lists|Unattended-Upgrade)'
+        line: "{{ item.key }} \"0\";"
+      with_items:
+        - { key: "APT::Periodic::Update-Package-Lists" }
+        - { key: "APT::Periodic::Unattended-Upgrade" }
+      ignore_errors: true    
+
+    - name: set a hostname 1/2
+      ansible.builtin.hostname:
+        name: "{{node_name}}"
+
+    - name: set a hostname 2/2
+      become: yes
+      shell: |
+              sed -i 's/127.0.1.1 ubuntu-clean/127.0.1.1 {{ node_name }}/' /etc/hosts
+      ignore_errors: true
+
+    - name: create clusterslice toolkit folders
+      become: yes
+      shell: |
+              mkdir -p /opt/clusterslice/info/
+              mkdir -p /opt/clusterslice/bin/
+              mkdir -p /opt/clusterslice/shared/
+      ignore_errors: true
+
+    - name: uploading slice information
+      become: yes
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/opt/clusterslice/info/"
+      with_fileglob:
+        - "masters"
+        - "workers"
+      ignore_errors: true
+
+    - name: updating hostname file 
+      become: yes
+      shell: |
+              echo "{{node_name}}.swn.uom.gr" > /opt/clusterslice/info/hostname
+      ignore_errors: true
+
+    - name: updating /etc/hosts file with slice nodes
+      become: yes
+      shell: |
+              grep "`cat /opt/clusterslice/info/masters | head -1 | tr -d '\n'`" /etc/hosts || cat /opt/clusterslice/info/masters >> /etc/hosts
+              grep "`cat /opt/clusterslice/info/workers | head -1 | tr -d '\n'`" /etc/hosts || cat /opt/clusterslice/info/workers >> /etc/hosts
+      ignore_errors: true
+
+    - name: uploading clusterslice toolkit
+      become: yes
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/opt/clusterslice/bin/"
+      with_fileglob:
+        - "files/toolkit/cpall"
+        - "files/toolkit/pingall"
+        - "files/toolkit/cpmasters"
+        - "files/toolkit/cpworkers"
+        - "files/toolkit/pingmasters"
+        - "files/toolkit/pingworkers"
+      ignore_errors: true
+
+    - name: setting permissions in toolkit bin folder
+      become: yes
+      shell: |
+              chmod 0755 /opt/clusterslice/bin/*
+      ignore_errors: true
+    
+    - name: Setup passwordless sudo for user
+      lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%sudo'
+        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        validate: '/usr/sbin/visudo -cf %s'
+
+    #- name: Install aptitude
+    #  apt:
+    #    name: aptitude
+    #    state: latest
+    #    update_cache: true
+    #  ignore_errors: true
+
+    - name: Create a new regular user with sudo privileges
+      user:
+        name: "{{ created_username }}"
+        password: "{{ created_password }}"
+        state: present
+        groups: sudo
+        append: true
+        create_home: true
+        shell: /bin/bash
+
+    - name: Set authorized key for remote user
+      ansible.posix.authorized_key:
+        user: "{{ created_username }}"
+        state: present
+        key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+    - name: Disable password authentication for root
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+
+    - name: Update apt and install required system packages
+      apt:
+        pkg:
+          - curl
+          - vim
+          - git
+          - acl
+          - ufw
+          - net-tools
+          - whois
+          - jq
+        state: latest
+        update_cache: true
+      ignore_errors: true
+      register: aptresult
+      until: "aptresult is not failed"
+      retries: 10
+      delay: 60
+
+    - name: configure test-bed user path
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              # fix path
+              grep "export PATH='$PATH:/opt/clusterslice/bin/'" ~/.bashrc || echo "export PATH='$PATH:/opt/clusterslice/bin/'" >> ~/.bashrc
+
+    - name: enable kubectl autocomplete feature
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              # enable kubectl autocomplete
+              grep "source <(kubectl completion bash)" ~/.bashrc || echo "source <(kubectl completion bash)" >> ~/.bashrc
+      when: not kubernetestype == "none"
+
+    - meta: clear_host_errors
+
+    - name: uploading files for private registry
+      become: yes
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/tmp/"
+      with_fileglob:
+        - "domain.crt"
+        - "config.json"
+      when: private_registry == "true" and not kubernetestype == "none"
+
+    - name: configure private registry
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: |
+              # configuring certification of private registry
+              sudo mkdir -p /etc/docker/certs.d/{{ private_registry_name }}
+              sudo cp /tmp/domain.crt /etc/docker/certs.d/{{ private_registry_name }}/ca.crt
+              sudo cp /tmp/domain.crt /usr/local/share/ca-certificates/domain.crt
+              sudo /usr/sbin/update-ca-certificates
+              # configuring docker access to private registry
+              mkdir ~{{ created_username }}/.docker
+              cp /tmp/config.json ~{{ created_username }}/.docker/config.json
+              # should also create the private registry secret at a later stage
+      when: private_registry == "true" and not kubernetestype == "none"
+
+    #- name: UFW - Allow SSH connections
+    #  community.general.ufw:
+    #    rule: allow
+    #    name: OpenSSH
+
+    #- name: UFW - Enable and deny by default
+    #  community.general.ufw:
+    #    state: enabled
+    #    default: deny
+
+    # reboot server
+    #- name: rebooting to upgrade kernel, if needed
+    #  shell: |
+    #          sudo reboot

@@ -1,0 +1,137 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: computeresources.swn.uom.gr
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: swn.uom.gr
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      additionalPrinterColumns:
+        - name: IP
+          type: string
+          jsonPath: .spec.ip
+        - name: ResourceType
+          type: string
+          jsonPath: .spec.resourcetype
+        - name: Status
+          type: string
+          jsonPath: .spec.status
+        - name: Domain
+          type: string
+          jsonPath: .spec.domain
+        - name: Slice
+          type: string
+          jsonPath: .spec.slice
+        - name: Apps
+          type: string
+          jsonPath: .spec.apps
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                name:
+                  type: string
+                ip:
+                  type: string
+                mac:
+                  type: string
+                secondaryip:
+                  type: string
+                  default: ""
+                secondarymac:
+                  type: string
+                  default: ""
+                resourcetype:
+                  type: string
+                  enum:
+                    - cloudserver
+                    - testbed
+                    - bossmaster
+                    - bossworker
+                    - edgenet
+                    - mastervm
+                    - workervm
+                    - masternode
+                    - workernode
+                nodetype:
+                  type: string
+                domain:
+                  type: string
+                  default: ""
+                site:
+                  type: string
+                  enum:
+                    - ""
+                    - pg-utah
+                    - apt
+                    - cl-clemson
+                    - cl-utah
+                    - cl-wisconsin
+                    - pg-wall2
+                  default: ""
+                operator:
+                  type: string
+                  default: ""
+                  enum:
+                    - ""
+                    - resource-manager
+                    - infrastructure-manager-xcpng
+                    - infrastructure-manager-virtualbox
+                    - infrastructure-manager-wall2
+                    - infrastructure-manager-apt
+                    - infrastructure-manager-wisconsin
+                    - infrastructure-manager-cloudlab
+                slice:
+                  type: string
+                  default: ""
+                usernamespace:
+                  type: string
+                  default: ""
+                apps:
+                  type: string
+                  default: ""
+                status:
+                  type: string
+                  enum:
+                    - free
+                    - reserved
+                    - creating_vm
+                    - booting
+                    - os_ready
+                    - os_configured
+                    - kubernetes_base
+                    - kubernetes_master
+                    - kubernetes_worker
+                    - join_worker
+                    - wait_for_plugin
+                    - install_apps
+                    - os_completed
+                    - allocated
+                    - failed
+                    - up
+                    - down
+                    - created
+                  default: free
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: computeresources
+    # singular name to be used as an alias on the CLI and for display
+    singular: computeresource
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: ComputeResource
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - cr

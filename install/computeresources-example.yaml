@@ -1,0 +1,59 @@
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: xcpngserver1
+  namespace: swn
+spec:
+  ip: "10.0.2.1"
+  resourcetype: "cloudserver"
+  status: "up"
+  nodetype: "xcpngserver"
+  operator: "infrastructure-manager-xcpng"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: xcpngserver2
+  namespace: swn
+spec:
+  ip: "10.0.2.2"
+  resourcetype: "cloudserver"
+  status: "up"
+  nodetype: "xcpngserver"
+  operator: "infrastructure-manager-xcpng"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: testbedm1
+  namespace: swn
+spec:
+  ip: "10.0.2.5"
+  resourcetype: "mastervm"
+  mac: "66:16:91:ec:02:05"
+  nodetype: "xcpngvm"
+  operator: "resource-manager"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: testbedw1
+  namespace: swn
+spec:
+  ip: "10.0.2.6"
+  resourcetype: "workervm"
+  mac: "66:16:91:ec:02:06"
+  nodetype: "xcpngvm"
+  operator: "resource-manager"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: testbedw2
+  namespace: swn
+spec:
+  ip: "10.0.2.7"
+  resourcetype: "workervm"
+  mac: "66:16:91:ec:02:07"
+  nodetype: "xcpngvm"
+  operator: "resource-manager"

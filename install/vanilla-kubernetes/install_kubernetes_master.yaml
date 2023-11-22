@@ -1,0 +1,62 @@
+---
+- hosts: localhost
+  become: true
+  gather_facts: no
+  vars:
+    created_username: user
+
+# https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/
+    
+  tasks:
+    - name: initialize the cluster
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+      args:
+        chdir: ~{{ created_username }}
+        creates: cluster_initialized.txt
+      ignore_errors: true
+
+    - name: create .kube directory
+      become: yes
+      become_user: "{{ created_username }}"
+      file:
+        path: "/home/{{ created_username }}/.kube"
+        state: directory
+        owner: "{{ created_username }}"
+        group: "{{ created_username }}"
+        mode: 0755
+
+    - name: copies admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/{{ created_username }}/.kube/config
+        remote_src: yes
+        owner: "{{ created_username }}"
+
+    - name: install Pod network
+      become: yes
+      become_user: "{{ created_username }}"
+      # flannel command
+      shell: kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/v0.20.2/Documentation/kube-flannel.yml
+      # calico command
+      #kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/tigera-operator.yaml; kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/custom-resources.yaml 
+      args:
+        chdir: ~{{ created_username }}
+      #ignore_errors: true
+       
+    - name: Get the token for joining the worker nodes
+      become: yes
+      become_user: "{{ created_username }}"
+      shell: kubeadm token create  --print-join-command
+      register: kubernetes_join_command
+
+    #- debug: var="{{ kubernetes_join_command.stdout }}"
+
+    - name: Copy join command to local file.
+      become: false
+      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="kubernetes_join_command" mode=0777
+
+    #- name: install docker
+    #  shell: |
+    #          sudo apt-get install docker-ce docker-ce-cli
+    #          sudo usermod -aG docker user
+    #          sudo usermod -aG docker {{ created_username }}

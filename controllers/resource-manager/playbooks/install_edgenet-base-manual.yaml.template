@@ -1,0 +1,158 @@
+---
+- hosts: {@node_name@}
+  become: true
+  gather_facts: no
+  vars:
+    kubernetestype: vanilla
+    admin_username: {@admin_username@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+    #ansible_ssh_args: -tt
+
+# https://buildvirtual.net/deploy-a-kubernetes-cluster-using-ansible/
+
+  tasks:
+     - name: Create containerd config file
+       become: true
+       file:
+         path: "/etc/modules-load.d/containerd.conf"
+         state: "touch"
+       when: kubernetestype == "vanilla"
+
+     - name: Add conf for containerd
+       blockinfile:
+         path: "/etc/modules-load.d/containerd.conf"
+         block: |
+               overlay
+               br_netfilter
+       when: kubernetestype == "vanilla"
+
+     - name: modprobe
+       shell: |
+               sudo modprobe overlay
+               sudo modprobe br_netfilter
+       when: kubernetestype == "vanilla"
+
+     - name: Set system configurations for Kubernetes networking
+       file:
+         path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+         state: "touch"
+       when: kubernetestype == "vanilla"
+
+     - name: Add conf for containerd
+       blockinfile:
+         path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+         block: |
+                net.bridge.bridge-nf-call-iptables = 1
+                net.ipv4.ip_forward = 1
+                net.bridge.bridge-nf-call-ip6tables = 1
+       when: kubernetestype == "vanilla"
+
+     - name: Apply new settings
+       command: sudo sysctl --system
+       when: kubernetestype == "vanilla"
+
+     - name: setting up docker apt repo
+       block:
+         - name: get docker gpg key
+           become: true
+           shell:
+             cmd: curl https://download.docker.com/linux/ubuntu/gpg > /usr/share/keyrings/docker-archive-keyring-armored.gpg
+           #get_url:
+           #  url: https://download.docker.com/linux/ubuntu/gpg
+           #  dest: /usr/share/keyrings/docker-archive-keyring-armored.gpg
+         - name: CMD - process docker key
+           become: true
+           shell:
+             cmd: cat /usr/share/keyrings/docker-archive-keyring-armored.gpg | gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+         - name: configure docker apt source
+           become: true        
+           apt_repository:
+             repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu focal stable"
+             state: present
+
+     - name: install containerd
+       shell: |
+               # from here https://www.linuxtechi.com/install-kubernetes-on-ubuntu-22-04/
+               sudo apt -y update
+               sudo apt install -y containerd.io
+               sudo containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+               sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+               sudo systemctl restart containerd
+               # old containerd commands
+               #sudo apt-get update && sudo apt-get install -y containerd
+               #sudo mkdir -p /etc/containerd
+               #sudo containerd config default | sudo tee /etc/containerd/config.toml
+               #sudo systemctl restart containerd
+       when: kubernetestype == "vanilla"
+
+     - name: disable swap
+       shell: |
+               sudo swapoff -a
+               sudo sed -ri '/\sswap\s/s/^#?/#/' /etc/fstab
+
+     - name: install and configure dependencies
+       shell: |
+               sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+       register: aptresult
+       until: "aptresult is not failed"
+       retries: 10
+       delay: 60
+       # retry in the case it is mistakenly failed.
+
+     - name: add google repository
+       shell: |
+               #curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+               echo xsBNBGKItdQBCADWmKTNZEYWgXy73FvKFY5fRro4tGNa4Be4TZW3wZpct9Cj8EjykU7S9EPoJ3EdKpxFltHRu7QbDi6LWSNA4XxwnudQrYGxnxx6Ru1KBHFxHhLfWsvFcGMwit/znpxtIt9UzqCm2YTEW5NUnzQ4rXYqVQK2FLG4weYJ5bKwkY+ZsnRJpzxdHGJ0pBiqwkMT8bfQdJymUBown+SeuQ2HEqfjVMsIRe0dweD2PHWeWo9fTXsz1Q5abiGckyOVyoN9//DgSvLUocUcZsrWvYPaN+o8lXTO3GYFGNVsx069rxarkeCjOpiQOWrQmywXISQudcusSgmmgfsRZYW7FDBy5MQrABEBAAHNUVJhcHR1cmUgQXV0b21hdGljIFNpZ25pbmcgS2V5IChjbG91ZC1yYXB0dXJlLXNpZ25pbmcta2V5LTIwMjItMDMtMDctMDhfMDFfMDEucHViKcLAYgQTAQgAFgUCYoi11AkQtT3IDRPt7wUCGwMCGQEAAMGoCAB8QBNIIN3Q2D3aahrfkb6axd55zOwR0tnriuJRoPHoNuorOpCv9aWMMvQACNWkxsvJxEF8OUbzhSYjAR534RDigjTetjK2i2wKLz/kJjZbuF4ZXMynCm40eVm1XZqU63U9XR2RxmXppyNpMqQO9LrzGEnNJuh23icaZY6no12axymxcle/+SCmda8oDAfa0iyA2iyg/eU05buZv54MC6RB13QtS+8vOrKDGr7RYp/VYvQzYWm+ck6DvlaVX6VB51BkLl23SQknyZIJBVPm8ttU65EyrrgG1jLLHFXDUqJ/RpNKq+PCzWiyt4uy3AfXK89RczLu3uxiD0CQI0T31u/IzsBNBGKItdQBCADIMMJdRcg0Phv7+CrZz3xRE8Fbz8AN+YCLigQeH0B9lijxkjAFr+thB0IrOu7ruwNY+mvdP6dAewUur+pJaIjEe+4s8JBEFb4BxJfBBPuEbGSxbi4OPEJuwT53TMJMEs7+gIxCCmwioTggTBp6JzDsT/cdBeyWCusCQwDWpqoYCoUWJLrUQ6dOlI7s6p+iIUNIamtyBCwb4izs27HdEpX8gvO9rEdtcb7399HyO3oD4gHgcuFiuZTpvWHdn9WYwPGM6npJNG7crtLnctTR0cP9KutSPNzpySeAniHx8L9ebdD9tNPCWC+OtOcGRrcBeEznkYh1C4kzdP1ORm5upnknABEBAAHCwF8EGAEIABMFAmKItdQJELU9yA0T7e8FAhsMAABJmAgAhRPk/dFj71bU/UTXrkEkZZzE9JzUgan/ttyRrV6QbFZABByf4pYjBj+yLKw3280//JWurKox2uzEq1hdXPedRHICRuh1Fjd00otaQ+wGF3kY74zlWivB6Wp6tnL9STQ1oVYBUv7HhSHoJ5shELyedxxHxurUgFAD+pbFXIiK8cnAHfXTJMcrmPpC+YWEC/DeqIyEcNPkzRhtRSuERXcq1n+KJvMUAKMD/tezwvujzBaaSWapmdnGmtRjjL7IxUeGamVWOwLQbUr+34MwzdeJdcL8fav5LA8Uk0ulyeXdwiAK8FKQsixI+xZvz7HUs8ln4pZwGw/TpvO9cMkHogtgzQ | base64 -d | sudo apt-key add -
+       when: kubernetestype == "vanilla"
+
+     - name: Create kubernetes repo file
+       file:
+         path: "/etc/apt/sources.list.d/kubernetes.list"
+         state: "touch"
+       when: kubernetestype == "vanilla"
+
+     - name: Add K8s Source
+       blockinfile:
+         path: "/etc/apt/sources.list.d/kubernetes.list"
+         block: |
+               deb https://apt.kubernetes.io/ kubernetes-xenial main
+       when: kubernetestype == "vanilla"
+
+     - name: install kubernetes
+       shell: |
+               sudo apt-get update
+               #sudo apt-get install -y kubelet=1.20.1-00 kubeadm=1.20.1-00 kubectl=1.20.1-00
+               sudo apt-get install -y kubelet kubeadm kubectl
+               sudo apt-mark hold kubelet kubeadm kubectl
+       register: kubeinstall
+       until: "kubeinstall is not failed"
+       retries: 10
+       delay: 60
+       when: kubernetestype == "vanilla"
+
+     - name: install kubectl for k0s
+       shell: |
+               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+               chmod +x kubectl
+               mv kubectl /usr/bin/
+       when: kubernetestype == "k0s"
+
+     - name: install microk8s tool for microk8s
+       shell: |
+               sudo snap install microk8s --classic --channel=1.27 < /dev/null
+               sudo usermod -a -G microk8s {{ admin_username }}
+       register: microk8scli
+       until: "microk8scli is not failed"
+       retries: 3
+       delay: 60
+       when: kubernetestype == "microk8s"
+
+     #- name: enable basic microk8s plugins
+     #  become: yes
+     #  become_user: "{{ admin_username }}"
+     #  shell: |
+     #          # enable dns and storage
+     #          microk8s enable dns
+     #          microk8s enable hostpath-storage
+     #  when: kubernetestype == "microk8s" 

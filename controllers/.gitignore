@@ -1,0 +1,10 @@
+image_prefix
+infrastructure-manager-cloudlab-pod.yaml
+infrastructure-manager-virtualbox-pod.yaml
+infrastructure-manager-xcpng-pod.yaml
+multiclusterslicerequest-operator-pod.yaml
+slice-operator-pod.yaml
+slicerequest-operator-pod.yaml
+enable_xcpng
+enable_virtualbox
+enable_cloudlab

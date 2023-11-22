@@ -1,0 +1,12 @@
+apiVersion: registration.edgenet.io/v1alpha1
+kind: ClusterRoleRequest
+metadata:
+  name: emamatas
+  namespace: default
+spec:
+  firstname: Lefteris
+  lastname: Mamatas
+  email: emamatas@uom.edu.gr
+  roleref: 
+    kind: ClusterRole
+    name: edgenet:tenant-admin

@@ -1,0 +1,12 @@
+Scripts required to deploy a new infrastructure manager. They should return an error code.
+
+1) create_vm $server_name $vm $template 
+2) prepare_vm $server_name $vm $template $mac $secondarymac $vm_uuid
+3) create_snapshot $server_name $vm
+4) vm_uuid=$(get_vm_uuid $server_name $vm)
+5) vm_exists_in_server=$(check_if_vm_exists_in_server $server_name $vm $server)
+6) snapshot_uuid=$(get_vm_snapshot_uuid $server_name $vm)
+7) revert_to_snapshot $server_name $snapshot_uuid
+8) remove_vm $server_name $vm
+9) cleanup_vm $server_name $vm
+10) boot_vm $server_name $vm

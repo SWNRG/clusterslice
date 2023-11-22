@@ -1,0 +1,25 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@} 
+    node_ip: {@node_ip@}
+    app_name: {@app_name@} 
+    app_version: {@app_version@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+
+  tasks:
+     #- name: installing golang
+     #  become: yes
+     #  become_user: "{{ admin_username }}"
+     #  shell: |
+     #          sudo apt update && sudo apt -y install golang
+
+     - name: cloning node github repository
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg| sudo gpg -o /usr/share/keyrings/kubernetes-archive-keyring.gpg --dearmor
+               git clone https://github.com/swnuom/node.git $HOME/node

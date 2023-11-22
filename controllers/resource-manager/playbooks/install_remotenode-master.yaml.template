@@ -1,0 +1,25 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    app_sharefile: {@app_sharefile@}
+    clusterslice_name: {@clusterslice_name@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+  tasks:
+     - name: share join command to remote nodes
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # share kubernetes join file to remote nodes
+               sudo cp /tmp/{{ clusterslice_name}}-kubernetes_join_command /opt/clusterslice/shared/{{ app_sharefile }}
+       register: share_join_command
+
+     - debug:
+         msg: "{{ share_join_command.stdout }}"

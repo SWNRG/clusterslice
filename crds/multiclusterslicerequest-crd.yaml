@@ -1,0 +1,224 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: multiclusterslicerequests.swn.uom.gr
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: swn.uom.gr
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      additionalPrinterColumns:
+        - name: Namespace
+          type: string
+          jsonPath: .spec.usernamespace
+        - name: Username
+          type: string
+          jsonPath: .spec.credentials.username
+        - name: Status
+          type: string
+          jsonPath: .spec.status
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                name:
+                  type: string
+                duration:
+                  type: string
+                usernamespace:
+                  type: string
+                deploymentstrategy:
+                  type: string
+                  enum:
+                    - ""
+                    - firstone
+                    - balanced
+                  default: ""
+                credentials:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    password:
+                      type: string
+                multiclustering:
+                  type: object
+                  properties:
+                    approach:
+                      type: string
+                      enum:
+                        - ""
+                        - ocm
+                        - liqo
+                      default: ""
+                    mastercluster:
+                      type: string
+                updating:
+                  type: boolean
+                  default: false
+                clusters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      deploymentdomain:
+                        type: string
+                        default: ""
+                      infrastructure:
+                        type: object
+                        properties:
+                          nodes:
+                            type: object
+                            properties:
+                              count:
+                                type: integer
+                              osimage:
+                                type: string
+                              osaccount:
+                                type: string
+                                default: user
+                              nodetype:
+                                type: string
+                          masters:
+                            type: object
+                            properties:
+                              count:
+                                type: integer
+                              osimage:
+                                type: string
+                              osaccount:
+                                type: string
+                                default: user
+                              mastertype:
+                                type: string
+                          workers:
+                            type: object
+                            properties:
+                              count:
+                                type: integer
+                              osimage:
+                                type: string
+                              osaccount:
+                                type: string
+                                default: user
+                              workertype:
+                                type: string
+                      kubernetes:
+                        type: object
+                        properties:
+                          kubernetestype:
+                            type: string
+                            enum:
+                              - ""
+                              - vanilla
+                              - k3s
+                              - k0s
+                              - microk8s
+                          kubernetesversion:
+                            type: string
+                          containerdversion:
+                            type: string
+                          critoolsversion:
+                            type: string
+                          networkfabric:
+                            type: string
+                            enum:
+                              - ""
+                              - flannel
+                              - multus
+                              - calico
+                              - cilium
+                              - kuberouter
+                              - weavenet
+                              - kubeovn
+                              - antrea
+                          networkcidr:
+                            type: string
+                            default: "10.244.0.0/16"
+                          servicecidr:
+                            type: string
+                            default: "10.96.0.0/12"
+                      applications:
+                        type: array
+                        nullable: true
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              enum:
+                                - argo
+                                - dashboard
+                                - docker
+                                - helm
+                                - kubeview
+                                - metrics-server
+                                - ocm-hub-init
+                                - ocm-hub-approve
+                                - ocm-managed
+                                - liqo-master
+                                - liqo-peer
+                                - karmada-init
+                                - karmada-join
+                                - remotenode-master
+                                - remotenode-worker
+                                - submariner-broker
+                                - submariner
+                                - teaching-examples
+                                - kubernetes_base
+                                - edgenet
+                                - edgenet-nodes
+                                - l2s-m
+                                - benchmarks
+                                - updates
+                            version:
+                              type: string
+                            parameters:
+                              type: string
+                            sharefile:
+                              type: string
+                            waitforfile:
+                              type: string
+                            scope:
+                              type: string
+                              enum:
+                                - cluster
+                                - masters
+                                - workers
+                                - all
+                              default: cluster
+                            deployed:
+                              type: boolean
+                              default: false
+                status:
+                  type: string
+                  enum:
+                    - defined
+                    - accepted
+                    - failed
+                    - declined
+                  default: defined
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: multiclusterslicerequests
+    # singular name to be used as an alias on the CLI and for display
+    singular: multiclusterslicerequest
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: MultiClusterSliceRequest
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - mcslr

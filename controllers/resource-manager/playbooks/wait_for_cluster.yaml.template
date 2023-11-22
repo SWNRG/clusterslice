@@ -1,0 +1,103 @@
+---
+- hosts: {@host@}
+  gather_facts: no
+  vars:
+    ansible_ssh_args: -tt
+    admin_username: {@username@}
+    node_name: {@host@}
+    kubernetestype: {@kubernetestype@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+  tasks:
+    - name: wait for kubernetes master node to be ready
+      become: yes
+      become_user: "{{ admin_username }}"
+      shell: |
+              kubectl wait node --all --for condition=ready --timeout=600s
+      register: nodes_ready
+      until: nodes_ready is not failed
+      retries: 10
+      delay: 60
+      when: kubernetestype == "vanilla"
+
+    - debug: var=nodes_ready.stdout_lines
+      when: kubernetestype == "vanilla"
+
+    - name: wait for k3s master node to be ready
+      become_user: "{{ admin_username }}"
+      become: yes
+      shell: |
+              KUBECONFIG=~/.kube/config kubectl wait node --all --for condition=ready --timeout=600s
+      register: k3snodes_ready
+      until: k3snodes_ready is not failed
+      retries: 50
+      delay: 5
+      when: kubernetestype == "k3s"
+
+    - debug: var=k3snodes_ready.stdout_lines
+      when: kubernetestype == "k3s"
+
+    - name: wait for microk8s master node to be ready
+      become_user: "{{ admin_username }}"
+      become: yes
+      shell: |
+              microk8s kubectl wait node --all --for condition=ready --timeout=600s
+      register: microk8snodes_ready
+      until: microk8snodes_ready is not failed
+      retries: 50
+      delay: 5
+      when: kubernetestype == "microk8s"
+
+    - debug: var=microk8snodes_ready.stdout_lines
+      when: kubernetestype == "microk8s"
+
+    - name: wait for k0s master node to be ready
+      become: yes
+      become_user: "{{ admin_username }}"
+      shell: |
+              KUBECONFIG=~/.kube/config kubectl wait node --all --for condition=ready --timeout=600s
+      register: k0snodes_ready
+      until: k0snodes_ready is not failed
+      retries: 50
+      delay: 5
+      when: kubernetestype == "k0s"
+
+    - debug: var=k0snodes_ready.stdout_lines
+      when: kubernetestype == "k0s"
+
+    - name: wait for system pods to be ready (vanilla, k3s and k8s)
+      become: yes
+      become_user: "{{ admin_username }}"
+      shell: |
+              # remove completed pods
+              KUBECONFIG=~/.kube/config kubectl delete pods --field-selector=status.phase==Succeeded -n kube-system
+              # check status of remaining pods
+              KUBECONFIG=~/.kube/config kubectl wait --for=condition=Ready pods --all -n kube-system
+      register: system_pods_ready
+      until: system_pods_ready is not failed
+      retries: 50
+      delay: 5
+      when: kubernetestype == "vanilla" or kubernetestype == "k3s" or kubernetestype == "k0s"
+
+    - debug: var=system_pods_ready.stdout_lines
+      when: kubernetestype == "vanilla" or kubernetestype == "k3s" or kubernetestype == "k0s"
+
+    - name: wait for microk8s system pods to be ready
+      become: yes
+      become_user: "{{ admin_username }}"
+      shell: |
+              # remove completed pods
+              microk8s kubectl delete pods --field-selector=status.phase==Succeeded -n kube-system
+              # check status of remaining pods, only if they exist (e.g., no pod exists in microk8s flannel case)
+              if microk8s kubectl get pods --all-namespaces | grep -q "kube-system"; then
+                 microk8s kubectl wait --for=condition=Ready pods --all -n kube-system
+              fi
+      register: microk8ssystem_pods_ready
+      until: microk8ssystem_pods_ready is not failed
+      retries: 50
+      delay: 5
+      when: kubernetestype == "microk8s"  
+
+    - debug: var=microk8ssystem_pods_ready.stdout_lines
+      when: kubernetestype == "microk8s" 

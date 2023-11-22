@@ -1,0 +1,45 @@
+# dhcpd.conf
+#
+# Sample configuration file for clusterslice ISC dhcpd
+#
+
+option domain-name "clusterslice";
+option domain-name-servers 8.8.8.8,8.8.4.4;
+
+authoritative;
+
+default-lease-time 600;
+max-lease-time 7200;
+
+subnet 10.0.0.0 netmask 255.255.0.0 {
+}
+
+host vboxm1 {
+  hardware ethernet 66:16:91:ec:01:05;
+  fixed-address 10.0.1.5;
+}
+
+host vboxw1 {
+  hardware ethernet 66:16:91:ec:01:06;
+  fixed-address 10.0.1.6;
+}
+
+host vboxw2 {
+  hardware ethernet 66:16:91:ec:01:07;
+  fixed-address 10.0.1.7;
+}
+
+host testbedm1 {
+  hardware ethernet 66:16:91:ec:02:05;
+  fixed-address 10.0.2.5;
+}
+
+host testbedw1 {
+  hardware ethernet 66:16:91:ec:02:06;
+  fixed-address 10.0.2.6;
+}
+
+host testbedw2 {
+  hardware ethernet 66:16:91:ec:02:07;
+  fixed-address 10.0.2.7;
+}

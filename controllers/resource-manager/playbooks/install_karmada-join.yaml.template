@@ -1,0 +1,33 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    app_waitforfile: {@app_waitforfile@}
+    #hub: {@hub@}
+    clusterslice_name: {@clusterslice_name@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+  tasks:
+
+     - name: installing karmada cli
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               curl -s https://raw.githubusercontent.com/karmada-io/karmada/master/hack/install-cli.sh | sudo INSTALL_CLI_VERSION=1.7.1 bash
+
+     - name: executing karmada join command
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               echo "joining karmada"
+               sudo $(cat /opt/clusterslice/shared/{{ app_waitforfile }}) --kubeconfig /home/{{ admin_username }}/.kube/config
+       register: karmada_join_command
+
+     - debug:
+         msg: "{{ karmada_join_command.stdout }}"

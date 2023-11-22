@@ -1,0 +1,28 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    app_waitforfile: {@app_waitforfile@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+
+  tasks:
+     - name: wait for file to appear in resource manager
+       delegate_to: localhost
+       ansible.builtin.wait_for:
+         path: /opt/clusterslice/shared/{{ app_waitforfile }}
+       register: filecheck
+       until: "filecheck is not failed"
+       retries: 100
+       delay: 5
+
+     - name: Upload file to remote host
+       become: yes
+       ansible.builtin.copy:
+         src: /opt/clusterslice/shared/{{ app_waitforfile }}
+         dest: /opt/clusterslice/shared/{{ app_waitforfile }}
+         owner: '{{ admin_username }}'
+         group: '{{ admin_username }}'
+         mode: '0554'

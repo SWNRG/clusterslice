@@ -1,0 +1,24 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    managed_clusters: {@managed_clusters@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+  tasks:
+     - name: approve pending clusters
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               echo "approving clusters"
+               for cluster in {{ managed_clusters }}; do
+                 echo "approving cluster $cluster"
+                 clusteradm accept --clusters $cluster
+               done
+       register: clustersapproved
+       until: "clustersapproved is not failed"
+       retries: 150
+       delay: 10

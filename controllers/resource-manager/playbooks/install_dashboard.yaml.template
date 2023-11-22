@@ -1,0 +1,53 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+    #ansible_ssh_args: -tt
+
+  tasks:
+     - name: installing dashboard
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/{{ app_version }}/aio/deploy/recommended.yaml
+
+     - name: copy dashboard user security yaml
+       become: yes
+       become_user: "{{ admin_username }}"
+       ansible.builtin.copy:
+         src: "create_dashboard_user.yaml"
+         dest: "/tmp/"
+
+     - name: apply dashboard user security policies
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl apply -f /tmp/create_dashboard_user.yaml
+               kubectl -n kubernetes-dashboard create token admin-user > ~/dashboard-token.txt
+
+     - name: create token script
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               echo '#!/bin/bash' > ~/update-dashboard-token.sh
+               echo "kubectl -n kubernetes-dashboard create token admin-user > ~/dashboard-token.txt" >> ~/update-dashboard-token.sh
+               chmod +x ~/update-dashboard-token.sh
+
+     - name: enable port forwarding for dashboard (port 8002)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               echo '#!/bin/bash' > ~/dashboard-port-forward.sh
+               echo "kubectl -n kubernetes-dashboard port-forward --address {{ node_ip }} svc/kubernetes-dashboard 8002:443 </dev/null >/dev/null 2>&1 &" >> ~/dashboard-port-forward.sh
+               echo "echo 'Listening in port 8002'" >> ~/dashboard-port-forward.sh
+               chmod +x ~/dashboard-port-forward.sh
+               #start-stop-daemon --start --quiet --pidfile /var/run/dashboard-forward-port --exec /tmp/dashboard-port-forward.sh
+       async: 10
+       poll: 0

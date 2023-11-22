@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# basic xcp-ng configuration 
+sr_uuid="TBA"
+private_net_uuid="TBA" # private network
+public_net_uuid="TBA" # public network
+host_uuid="TBA" # server uuid
+
+# configuration parameters
+# enable if virtualization infrastructure supports server pooling
+is_pooling_enabled=true
+
+# remove resource, if one with the same name already exist
+force_resource_removal=true
+
+# enable snapshot, e.g., revert to a snapshot if the VM+snapshot already exist
+enable_snapshots=true
+
+# create alias for remote xe CLI execution, i.e., to be executed via ssh
+xe="ssh root@$server -o StrictHostKeyChecking=no xe"
+# local execution
+#xe="xe"

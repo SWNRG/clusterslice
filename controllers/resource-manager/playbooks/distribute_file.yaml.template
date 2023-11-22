@@ -1,0 +1,22 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    app_sharefile: {@app_sharefile@}
+    user_namespace: {@user_namespace@}
+
+  tasks:
+     - name: fetch shared file from node to resource manager
+       become: yes
+       become_user: "{{ admin_username }}"
+       fetch:
+         src: /opt/clusterslice/shared/{{ app_sharefile }}
+         dest: /opt/clusterslice/shared/{{ app_sharefile }}
+         flat: yes
+
+     - name: distribute file to all resource managers in namespace
+       delegate_to: localhost
+       shell: |
+               /opt/clusterslice/distribute_file.sh {{ app_sharefile }} {{ user_namespace }}
+       #when: app_sharefile is not "none"

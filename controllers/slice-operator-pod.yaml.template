@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slice-operator
+  namespace: swn
+spec:
+  containers:
+  - name: slice-operator
+    image: swnrg/slice-operator
+    imagePullPolicy: Always
+    env:
+    - name: LOG_TYPE
+      value: "text"
+      # could also be json
+  serviceAccountName: monitor-clusterslice
+  imagePullSecrets:
+  - name: registry-secret

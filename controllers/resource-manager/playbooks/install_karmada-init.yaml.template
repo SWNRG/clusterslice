@@ -1,0 +1,41 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    app_sharefile: {@app_sharefile@}
+    clusterslice_name: {@clusterslice_name@}
+    ansible_shell_type: sh
+    ansible_terminal_type: dumb
+
+  tasks:
+     - name: installing karmada cli
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               curl -s https://raw.githubusercontent.com/karmada-io/karmada/master/hack/install-cli.sh | sudo INSTALL_CLI_VERSION=1.7.1 bash
+
+     - name: init karmada
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sudo karmadactl init --kubeconfig $HOME/.kube/config | tee /tmp/karmada-output.txt
+               cat /tmp/karmada-output.txt | grep -o 'karmadactl register [0-9.:]\+ --token [a-zA-Z0-9.]\+ --discovery-token-ca-cert-hash sha256:[a-f0-9]\+' > /tmp/karmada_join.sh
+               chmod +x /tmp/karmada_join.sh
+               # also share file to other nodes
+               sudo cp /tmp/karmada_join.sh /opt/clusterslice/shared/{{ app_sharefile }}
+       register: karmada_init_command
+
+     - debug:
+         msg: "{{ karmada_init_command.stdout }}"
+
+     - name: create config-karmada
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sudo cp /etc/karmada/karmada-apiserver.config /home/{{ admin_username }}/.kube/config.karmada
+               sudo chown {{ admin_username }}:{{ admin_username }} /home/{{ admin_username }}/.kube/config.karmada

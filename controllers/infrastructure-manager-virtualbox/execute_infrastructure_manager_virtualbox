@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# remove existing infrastructure-manager-virtualbox container, in the case it exists
+docker stop infrastructure-manager-virtualbox 2> /dev/null
+docker remove infrastructure-manager-virtualbox 2> /dev/null
+
+docker run -d --name infrastructure-manager-virtualbox -v /$HOME/.ssh:/root/.ssh/ brecht.swn.uom.gr:5000/infrastructure-manager-virtualbox

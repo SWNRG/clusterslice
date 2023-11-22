@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# basic virtualbox configuration
+image_path="/home/lefteris/Documents/"
+username="lefteris"
+
+# configuration parameters
+# enable if virtualization infrastructure supports server pooling
+is_pooling_enabled=false
+
+# remove resource, if one with the same name already exist
+force_resource_removal=true
+
+# enable snapshot, e.g., revert to a snapshot if the VM+snapshot already exist
+enable_snapshots=true
+
+# create alias for remote xe CLI execution, i.e., to be executed via ssh
+VBoxManage="ssh $username@$server -o StrictHostKeyChecking=no VBoxManage"
+# local execution
+#VBoxManage="VBoxManage"

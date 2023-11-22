@@ -1,0 +1,39 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+    #ansible_ssh_args: -tt
+
+  tasks:
+     - name: installing kubeview
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               git clone https://github.com/benc-uk/kubeview
+               cd kubeview/charts/
+               helm install kubeview kubeview
+
+     - name: Update kubeview service to use ClusterIP
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl patch service/kubeview --patch "{\"spec\":{\"type\":\"ClusterIP\"}}" --type merge
+        
+     - name: enable port forwarding for kubeview (port 8003)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: | 
+               echo "#!/bin/bash" > ~/kubeview-port-forward.sh
+               echo "nohup kubectl port-forward --address {{ node_ip }} svc/kubeview 8003:80 </dev/null >/dev/null 2>&1 &" >> ~/kubeview-port-forward.sh
+               echo "echo 'Listening in port 8003'" >> ~/kubeview-port-forward.sh
+               chmod +x ~/kubeview-port-forward.sh
+               #nohup kubectl port-forward --address {{ node_ip }} svc/kubeview 8003:80 </dev/null >/dev/null 2>&1 &
+       async: 10
+       poll: 0

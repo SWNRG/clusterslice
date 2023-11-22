@@ -1,0 +1,29 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@} 
+    node_ip: {@node_ip@}
+    app_name: {@app_name@} 
+    app_version: {@app_version@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+
+  tasks:
+     - name: upload benchmarking files
+       become: yes
+       become_user: "{{ admin_username }}"
+       ansible.builtin.copy:
+         src: "{{ item }}"
+         dest: "/home/{{ admin_username }}/"
+       with_fileglob:
+         - "benchmarks/*"
+       ignore_errors: true
+
+     - name: convert shell scripts to executable
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               chmod +x /home/{{ admin_username }}/*.sh
+               chmod +x /home/{{ admin_username }}/knb

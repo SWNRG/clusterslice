@@ -1,0 +1,10 @@
+apiVersion: networking.edgenet.io/v1alpha1
+kind: VPNPeer
+metadata:
+  name: NODE # Replace with the node name
+spec:
+  addressV4: 10.183.5.FOURTH # Replace with the edgenetmesh0 ipv4 address
+  addressV6: fdb4:ae86:ec99:4004::FOURTH # Replace with the edgenetmesh0 ipv6 address
+  endpointAddress: IP # Replace with the public ip address of the node (e.g. use https://ipinfo.io)
+  endpointPort: 51820
+  publicKey: PUBLICKEY # Replace with the result of `echo "private key generated previously" | wg pubkey`

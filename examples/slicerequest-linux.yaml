@@ -1,0 +1,20 @@
+apiVersion: "swn.uom.gr/v1"
+kind: SliceRequest
+metadata:
+  name: plainservers
+  namespace: swn
+spec:
+  name: plainservers
+  usernamespace: swn
+  deploymentdomain: swntestbed
+  credentials:
+    username: clusterslice
+    password: sha-512-encoded-password
+  infrastructure:
+    nodes:
+      count: 1
+      osimage: "ubuntu-22-clean"
+      nodetype: "vm"
+  applications:
+    - name: teaching-examples
+      scope: all

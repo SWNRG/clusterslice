@@ -1,0 +1,129 @@
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: localpc
+  namespace: swn
+spec:
+  ip: "10.0.1.1"
+  resourcetype: "cloudserver"
+  status: "up"
+  domain: "localpc"
+  operator: "infrastructure-manager-virtualbox"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: cloudlabutah
+  namespace: swn
+spec:
+  ip: ""
+  resourcetype: "testbed"
+  status: "up"
+  domain: "cloudlab"
+  site: "pg-utah"
+  nodetype: "none"
+  operator: "infrastructure-manager-cloudlab"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: xcpngserver1
+  namespace: swn
+spec:
+  ip: "10.0.2.1"
+  resourcetype: "cloudserver"
+  status: "up"
+  domain: "testbed"
+  nodetype: "xcpngserver"
+  operator: "infrastructure-manager-xcpng"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: xcpngserver2
+  namespace: swn
+spec:
+  ip: "10.0.2.2"
+  resourcetype: "cloudserver"
+  status: "up"
+  domain: "testbed"
+  nodetype: "xcpngserver"
+  operator: "infrastructure-manager-xcpng"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: vboxm1
+  namespace: swn
+spec:
+  ip: "10.0.1.5"
+  resourcetype: "mastervm"
+  mac: "66:16:91:ec:01:05"
+  domain: "localpc"
+  nodetype: "vboxvm"
+  operator: "resource-manager"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: vboxw1
+  namespace: swn
+spec:
+  ip: "10.0.1.6"
+  resourcetype: "workervm"
+  mac: "66:16:91:ec:01:06"
+  domain: "localpc"
+  nodetype: "vboxvm"
+  operator: "resource-manager"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: vboxw2
+  namespace: swn
+spec:
+  ip: "10.0.1.7"
+  resourcetype: "workervm"
+  mac: "66:16:91:ec:01:07"
+  domain: "localpc"
+  nodetype: "vboxvm"
+  operator: "resource-manager"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: testbedm1
+  namespace: swn
+spec:
+  ip: "10.0.2.5"
+  resourcetype: "mastervm"
+  mac: "66:16:91:ec:02:05"
+  domain: "testbed"
+  nodetype: "xcpngvm"
+  operator: "resource-manager"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: testbedw1
+  namespace: swn
+spec:
+  ip: "10.0.2.6"
+  resourcetype: "workervm"
+  mac: "66:16:91:ec:02:06"
+  domain: "testbed"
+  nodetype: "xcpngvm"
+  operator: "resource-manager"
+---
+apiVersion: "swn.uom.gr/v1"
+kind: ComputeResource
+metadata:
+  name: testbedw2
+  namespace: swn
+spec:
+  ip: "10.0.2.7"
+  resourcetype: "workervm"
+  mac: "66:16:91:ec:02:07"
+  domain: "testbed"
+  nodetype: "xcpngvm"
+  operator: "resource-manager"

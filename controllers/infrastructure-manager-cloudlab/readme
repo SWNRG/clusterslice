@@ -1,0 +1,4 @@
+the container supports omni & geni-lib, as well as a cloudlab wrapper for geni-lib.
+
+should also support portal-tools:
+https://gitlab.flux.utah.edu/stoller/portal-tools/-/blob/master/install.sh

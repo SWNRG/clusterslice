@@ -1,0 +1,84 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@} 
+    node_ip: {@node_ip@}
+    app_name: {@app_name@} 
+    app_version: {@app_version@}
+    workflow: {@workflow@}
+    kubernetes_type: {@kubernetes_type@}
+    #ansible_shell_type: sh
+    #ansible_terminal_type: dumb
+    #ansible_ssh_args: -tt
+
+  tasks:
+     - name: create argo namespace for vanilla kubernetes
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create ns argo
+       ignore_errors: true
+
+     - name: create registry secret in argo namespace
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create secret generic registry-secret \
+               --from-file=.dockerconfigjson=$HOME/.docker/config.json \
+               --type=kubernetes.io/dockerconfigjson -n argo
+
+     - name: installing argo workflows 
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl apply -n argo -f https://github.com/argoproj/argo-workflows/releases/download/{{ app_version }}/install.yaml
+               kubectl -n argo wait deploy --all --for condition=Available --timeout 10m
+
+     - name: configuring argo workflows
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl patch deployment   argo-server   --namespace argo   --type='json'   -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": [ "server", "--auth-mode=server", "--secure=false"]}, {"op": "replace", "path": "/spec/template/spec/containers/0/readinessProbe/httpGet/scheme", "value": "HTTP"}]'
+               kubectl -n argo rollout status --watch --timeout=600s deployment/argo-server
+
+     - name: enabling port forwarding for argo workflows dashboard (port 8001)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |               
+               echo "#!/bin/bash" > ~/argo-port-forward.sh
+               echo "nohup kubectl -n argo port-forward --address {{ node_ip }} svc/argo-server 8001:2746 </dev/null >/dev/null 2>&1 &" >> ~/argo-port-forward.sh
+               echo "echo 'Listening in port 8001'" >> ~/argo-port-forward.sh
+               chmod +x ~/argo-port-forward.sh
+               #nohup kubectl -n argo port-forward --address {{ node_ip }} svc/argo-server 8001:2746 </dev/null >/dev/null 2>&1 &
+       async: 10
+       poll: 0
+
+     - name: install argo cli
+       shell: |               
+               curl -sLO https://github.com/argoproj/argo-workflows/releases/download/{{ app_version }}/argo-linux-amd64.gz
+               gunzip argo-linux-amd64.gz
+               chmod +x argo-linux-amd64
+               sudo chown root:root ./argo-linux-amd64
+               sudo mv ./argo-linux-amd64 /usr/local/bin/argo
+               argo version
+       register: argocli
+       until: "argocli is not failed"
+       retries: 3
+       delay: 60
+
+     - name: copy workflow
+       become: yes
+       become_user: "{{ admin_username }}"
+       ansible.builtin.copy:
+         src: "argo/{{ workflow }}"
+         dest: "/tmp/{{ workflow }}"
+       when: not workflow == "none"
+
+     - name: execute workflow
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               argo submit -n argo "/tmp/{{ workflow }}"
+       when: not workflow == "none"

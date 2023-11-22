@@ -1,0 +1,72 @@
+apiVersion: "swn.uom.gr/v1"
+kind: MultiClusterSliceRequest
+metadata:
+  name: liqo
+  namespace: swn
+spec:
+  name: liqo
+  usernamespace: swn
+  deploymentstrategy: balanced
+  credentials:
+    username: clusterslice
+    password: sha-512-encoded-password
+  clusters:
+    - name: liqo
+      deploymentdomain: swntestbed
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          mastertype: "vm"
+        workers:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          workertype: "vm"
+      kubernetes:
+        kubernetestype: "vanilla"
+        kubernetesversion: "1.1"
+        networkfabric: "flannel"
+      applications:
+        - name: liqo-master
+          scope: cluster
+          parameters: "{'peers': '[liqo1,liqo2]'}"
+    - name: liqo1
+      deploymentdomain: lefteris
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          mastertype: "vm"
+        workers:
+          count: 1
+          osimage: "ubuntu-22-clean"
+          workertype: "vm"
+      kubernetes:
+        kubernetestype: "vanilla"
+        kubernetesversion: "1.1"
+        networkfabric: "flannel"
+      applications:
+        - name: liqo-peer
+          scope: cluster
+          sharefile: "liqo1-peer-join.sh"
+    - name: liqo2
+      deploymentdomain: cloudlab
+      infrastructure:
+        masters:
+          count: 1
+          osimage: "UBUNTU22-64-STD"
+          osaccount: "lmamatas"
+          mastertype: "pc3000"
+        workers:
+          count: 1
+          osimage: "UBUNTU22-64-STD"
+          osaccount: "lmamatas"
+          workertype: "pc3000"
+      kubernetes:
+        kubernetestype: "vanilla"
+        kubernetesversion: "1.1"
+        networkfabric: "flannel"
+      applications:
+        - name: liqo-peer
+          scope: cluster
+          sharefile: "liqo2-peer-join.sh"

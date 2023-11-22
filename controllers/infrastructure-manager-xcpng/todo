@@ -1,0 +1,2 @@
+validate mac addresses of interfaces after reverting from a snapshot.
+fix issue when multiple VMs exist with the requested name (e.g., parallel experiment from swn-experiments).

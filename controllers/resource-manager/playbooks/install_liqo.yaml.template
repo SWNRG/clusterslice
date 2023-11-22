@@ -1,0 +1,40 @@
+---
+- hosts: {@node_name@}
+  gather_facts: no
+  vars:
+    admin_username: {@admin_username@}
+    node_name: {@node_name@}
+    node_ip: {@node_ip@}
+    app_name: {@app_name@}
+    app_version: {@app_version@}
+
+  tasks:
+     - name: installing liqo cli
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               sudo curl --fail -LS "https://github.com/liqotech/liqo/releases/download/v0.8.3/liqoctl-linux-amd64.tar.gz" | sudo tar -xz
+               sudo install -o root -g root -m 0755 liqoctl /usr/local/bin/liqoctl
+
+     - name: installing liqo 
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               liqoctl install kubeadm
+
+     - name: Update liqo services to use NodePort
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl -n liqo patch service/liqo-auth --patch "{\"spec\":{\"type\":\"NodePort\"}}" --type merge
+               kubectl -n liqo patch service/liqo-gateway --patch "{\"spec\":{\"type\":\"NodePort\"}}" --type merge
+
+     - name: Retrieving liqoctl status
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               liqoctl status
+       register: liqo_status_output
+
+     - name: Show liqo status
+       debug: var=liqo_status_output
