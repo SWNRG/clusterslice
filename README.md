@@ -36,7 +36,7 @@ Contact [Lefteris Mamatas](https://sites.google.com/site/emamatas/) from Univers
 
 # License
 
-ClusterSlice is released under the [GPL v3.0](./LICENSE).
+ClusterSlice is released under the [Eclipse Public License 2.0](./LICENSE).
 
 # Acknowledgement
 
