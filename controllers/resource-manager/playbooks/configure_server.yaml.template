@@ -148,13 +148,13 @@
               # fix path
               grep "export PATH='$PATH:/opt/clusterslice/bin/'" ~/.bashrc || echo "export PATH='$PATH:/opt/clusterslice/bin/'" >> ~/.bashrc
 
-    - name: enable kubectl autocomplete feature
+    - name: enable kubectl autocomplete feature for vanilla kubernetes
       become: yes
       become_user: "{{ created_username }}"
       shell: |
               # enable kubectl autocomplete
               grep "source <(kubectl completion bash)" ~/.bashrc || echo "source <(kubectl completion bash)" >> ~/.bashrc
-      when: not kubernetestype == "none"
+      when: kubernetestype == "vanilla"
 
     - meta: clear_host_errors
 
