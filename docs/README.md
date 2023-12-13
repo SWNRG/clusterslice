@@ -241,6 +241,9 @@ Currently supported applications include:
 * **liqo:** Liqo multi-cluster management software
   - liqo-master
   - liqo-peer
+* **karmada:** Karmada multi-cluster management software
+  - karmada-init
+  - karmada-join
 * **submariner:** Submariner inter-domain network plugin
   - submariner-broker
   - submariner
@@ -295,7 +298,7 @@ After a while, the new experimentation slice is up and running. The user can acc
 
 The expansion of ClusterSlice to support multi-clustering and multi-domain functionality introduces the following additional design abstractions:
 
-* **MultiClusterSliceRequest CR and Operator:** This higher-level abstraction is responsible for creating and overseeing multiple `SliceRequest` objects, which in turn allocate the clusters that constitute the multi-cluster slice. It also manages the deployment of multi-cluster management software, such as Liqo or OCM.
+* **MultiClusterSliceRequest CR and Operator:** This higher-level abstraction is responsible for creating and overseeing multiple `SliceRequest` objects, which in turn allocate the clusters that constitute the multi-cluster slice. It also manages the deployment of multi-cluster management software, such as Liqo, Karmada or OCM.
 * **Infrastructure Managers:** The role of the `Infrastructure Managers` is to establish communication with technology-specific cloud managers or test-bed controllers within specific domains. These managers function as drivers for heterogeneous resource management systems, handling both physical and virtual resources.
 
 Example `Infrastructure Manager` implementations as well as the `MultiClusterSliceRequest Operator` can be found in the [clusterslice/controllers](../controllers) directory. The `MultiClusterSliceRequest` CRD is placed in the [clusterslice/crds/multiclusterslicerequest-crd.yaml](../crds/multiclusterslicerequest-crd.yaml) file.
