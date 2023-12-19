@@ -98,9 +98,9 @@
       shell: |
             if [ "{{ networkcidr }}" = "10.244.0.0/16" ]; then
               # default CIDR value
-              kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+              kubectl apply -f apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
             else
-              curl -o /tmp/kube-flannel.yml https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+              curl -o /tmp/kube-flannel.yml apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
               sed -i 's|10\.244\.0\.0/16|{{ networkcidr }}|g' /tmp/kube-flannel.yml
               # replace docker.io/flannel with the address of private registry
               sed -i 's|docker.io/flannel|{{ private_registry_name }}|g' /tmp/kube-flannel.yml
