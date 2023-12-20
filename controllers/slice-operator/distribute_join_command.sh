@@ -12,7 +12,7 @@ for name in `cat /tmp/$clusterslice_name-workers`
 do
   pod="resource-manager-$name"
   echo "Distributing keys to worker pod $pod"
-  kubectl cp /tmp/$clusterslice_name-kubernetes_join_command $user_namespace/$pod:$main_path/playbooks/kubernetes_join_command
+  kubectl cp /tmp/$clusterslice_name-kubernetes_join_command $user_namespace/$pod:$main_path/playbooks/${name}_kubernetes_join_command
 
   echo "Executing join cluster command in pod $pod"
   #kubectl -n $user_namespace exec $pod -- $main_path/join_worker.sh 

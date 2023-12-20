@@ -13,7 +13,7 @@
    - name: Copy join command from Ansiblehost to the worker nodes.
      become: yes
      copy:
-       src: kubernetes_join_command
+       src: {{ hosts }}_kubernetes_join_command
        dest: /tmp/kubernetes_join_command
        mode: 0777
 

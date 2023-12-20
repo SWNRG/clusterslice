@@ -5,7 +5,7 @@ function create_playbook () {
    local playbookname=$1
 
    # create a new file from playbook template
-   cp $playbook_path/$playbookname.template $target_playbook_path/$playbookname
+   cp $playbook_path/$playbookname.template $playbook_path/${playbook_prefix}${playbookname}
    # update template
    input=$2[@]
    keyvalues=("${!input}")
@@ -29,16 +29,16 @@ function create_playbook () {
       echo "Replacing key $key for value $value."
       # remove '' for ubuntu (it is there for mac-os-x compatibility)
       if [ `uname` == "Linux" ]; then
-         sed -i "s $key $value g" $target_playbook_path/$playbookname
+         sed -i "s $key $value g" $playbook_path/${playbook_prefix}${playbookname}
       else
-         sed -i "" "s $key $value g" $target_playbook_path/$playbookname     
+         sed -i "" "s $key $value g" $playbook_path/${playbook_prefix}${playbookname}     
       fi
    done
    # replace missing {@variables@} with the word none
    if [ `uname` == "Linux" ]; then
-         sed -i "s {@.*@} none g" $target_playbook_path/$playbookname
+         sed -i "s {@.*@} none g" $playbook_path/${playbook_prefix}${playbookname}
    else
-         sed -i "" "s {@.*@} none g" $target_playbook_path/$playbookname
+         sed -i "" "s {@.*@} none g" $playbook_path/${playbook_prefix}${playbookname}
    fi
 }
 
@@ -148,7 +148,7 @@ function configure_server () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/configure_server.yaml #-c paramiko #-K
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}configure_server.yaml #-c paramiko #-K
 
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
@@ -180,7 +180,7 @@ function install_kubernetes_base () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/install_kubernetes_base.yaml #-c paramiko
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}install_kubernetes_base.yaml #-c paramiko
 
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
@@ -221,7 +221,7 @@ function install_kubernetes_master () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/install_kubernetes_master.yaml -c paramiko
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}install_kubernetes_master.yaml -c paramiko
   
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
@@ -262,7 +262,7 @@ function wait_for_cluster () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/wait_for_cluster.yaml -c paramiko
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}wait_for_cluster.yaml -c paramiko
 
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
@@ -289,7 +289,7 @@ function install_kubernetes_worker () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/install_kubernetes_worker.yaml #-c paramiko
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}install_kubernetes_worker.yaml #-c paramiko
   
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
@@ -325,7 +325,7 @@ function distribute_file () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/distribute_file.yaml #-c paramiko
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}distribute_file.yaml #-c paramiko
 
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
@@ -357,7 +357,7 @@ function wait_for_file () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/wait_for_file.yaml #-c paramiko
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}wait_for_file.yaml #-c paramiko
 
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
@@ -429,7 +429,7 @@ function install_application () {
   echo ""
 
   # execute playbook
-  ansible-playbook $ansible_debug -i $hostsfile $target_playbook_path/install_$app_name.yaml -c paramiko
+  ansible-playbook $ansible_debug -i $hostsfile $playbook_path/${playbook_prefix}install_$app_name.yaml -c paramiko
 
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
