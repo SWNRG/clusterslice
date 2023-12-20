@@ -20,6 +20,7 @@
        become_user: "{{ admin_username }}"
        shell: |
                git clone https://github.com/Networks-it-uc3m/L2S-M.git $HOME/'L2S-M'
+               cd $HOME/'L2S-M'; git checkout v1
 
      - name: upload l2s-m configuration scripts
        become: yes
