@@ -10,6 +10,16 @@ else
   user_namespace="standalone"
 fi
 
+# specify target_playbook_path, this is needed for docker based
+# execution of resource-manager (playbooks folder is shared, so
+# playbooks should not be created there, because this causes
+# synchronization issues
+if $k8s; then
+   target_playbook_path=$playbook_path
+else
+   target_playbook_path="."
+fi
+
 # access credentials
 admin_username=$ADMIN_USERNAME
 admin_password=$ADMIN_PASSWORD
@@ -196,22 +206,22 @@ fi
 #echo "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> $main_path/ansible/hosts
 
 # create a file with master nodes in ansible playbooks files folder
-rm $playbook_path/files/masters 2> /dev/null
+rm $target_playbook_path/files/masters 2> /dev/null
 resinputcount=0
 for masterhost in $master_hosts;
 do
   # store both public and private IPs for master nodes, i.e., needed from submariner
   if [[ $node_secondaryip == "none" ]] || [[ $node_secondaryip == "" ]]; then
      masterip=$(json_array_item "$MASTER_IPS" $resinputcount)
-     #echo "$masterip $masterhost" >> $playbook_path/files/masters
+     #echo "$masterip $masterhost" >> $target_playbook_path/files/masters
   else
      masterip=$(json_array_item "$MASTER_PRIVATEIPS" $resinputcount)
-     #echo "$masterip $masterhost" >> $playbook_path/files/masters
+     #echo "$masterip $masterhost" >> $target_playbook_path/files/masters
      # store also public
      #masterip=$(json_array_item "$MASTER_IPS" $resinputcount)
-     #echo "$masterip $masterhost" >> $playbook_path/files/masters
+     #echo "$masterip $masterhost" >> $target_playbook_path/files/masters
   fi
-  echo "$masterip $masterhost" >> $playbook_path/files/masters
+  echo "$masterip $masterhost" >> $target_playbook_path/files/masters
   let resinputcount=resinputcount+1
 done
 
@@ -219,7 +229,7 @@ done
 masters_num=$resinputcount
 
 # create a file with worker nodes in ansible playbooks files folder
-rm $playbook_path/files/workers 2> /dev/null
+rm $target_playbook_path/files/workers 2> /dev/null
 resinputcount=0
 for workerhost in $worker_hosts;
 do
@@ -229,7 +239,7 @@ do
   else
      workerip=$(json_array_item "$WORKER_PRIVATEIPS" $resinputcount)
   fi
-  echo "$workerip $workerhost" >> $playbook_path/files/workers
+  echo "$workerip $workerhost" >> $target_playbook_path/files/workers
   let resinputcount=resinputcount+1
 done
 

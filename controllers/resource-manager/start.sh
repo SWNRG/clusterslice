@@ -43,7 +43,7 @@ else
       if [[ $node_type == "workervm" ]] || [[ $node_type == "workernode" ]]; then
         #echo "join command appeared in shared folder"
         # copy join command to playbook folder
-        cp /opt/clusterslice/shared/$clusterslice_name-kubernetes_join_command $playbook_path/kubernetes_join_command
+        cp /opt/clusterslice/shared/$clusterslice_name-kubernetes_join_command $target_playbook_path/kubernetes_join_command
         # join worker node
         source /opt/clusterslice/join_worker.sh
       fi
