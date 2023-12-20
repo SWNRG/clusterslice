@@ -1,4 +1,4 @@
-kubernetes_join_command
+*_join_command
 *.old
 *.bak
 *.yaml
