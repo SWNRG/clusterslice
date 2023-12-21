@@ -3,11 +3,6 @@
 # defines main path
 main_path=/opt/clusterslice/
 
-# define test-bed gateway
-gateway="TBA"
-# define test-bed DNS
-dns="8.8.8.8"
-
 # define hosts file name and playbook directory
 hostsfile=$main_path/ansible/hosts
 playbook_path=$main_path/playbooks
