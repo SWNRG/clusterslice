@@ -15,14 +15,28 @@
     tunnel_interface: eth0
 
   tasks:
-     - name: download l2s-m git
+     - name: set v2 in the case no version have been passed
+       set_fact:
+         app_version: "v2"
+       when: app_version == "none"
+
+     - name: download l2s-m git v1
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                git clone https://github.com/Networks-it-uc3m/L2S-M.git $HOME/'L2S-M'
                cd $HOME/'L2S-M'; git checkout v1
+       when: app_version == "v1"
 
-     - name: upload l2s-m configuration scripts
+     - name: download l2s-m git v2
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               git clone https://github.com/Networks-it-uc3m/L2S-M.git $HOME/'L2S-M'
+               # cd $HOME/'L2S-M'; git checkout v2
+       when: app_version == "v2"  
+
+     - name: upload l2s-m configuration scripts (v1)
        become: yes
        become_user: "{{ admin_username }}"
        ansible.builtin.copy:
@@ -30,26 +44,30 @@
          dest: "/home/{{ admin_username }}/"
        with_fileglob:
          - "l2sm/create_vxlan_file.sh"
+       when: app_version == "v1"
 
-     - name: convert shell scripts to executable
+     - name: convert shell scripts to executable (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                chmod +x /home/{{ admin_username }}/*.sh
+       when: app_version == "v1"
 
-     - name: create vxlan interfaces and veth pairs
+     - name: create vxlan interfaces and veth pairs (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                $HOME/create_vxlan_file.sh {{ node_ip }} > $HOME/L2S-M/K8s/provision/vxlans.txt
                sudo sh $HOME/L2S-M/K8s/provision/set-interfaces.sh {{ tunnel_interface }} $HOME/L2S-M/K8s/provision/vxlans.txt
+       when: app_version == "v1"
 
-     - name: Add cron job to run set-interfaces.sh at reboot
+     - name: Add cron job to run set-interfaces.sh at reboot (v1)
        become: yes
        ansible.builtin.cron:
          name: "Configure Virtual Interfaces at Reboot"
          special_time: reboot
          job: "$HOME/L2S-M/K8s/provision/set-interfaces.sh {{ tunnel_interface }} $HOME/L2S-M/K8s/provision/vxlans.txt"
+       when: app_version == "v1"
 
      - name: configure master node
        become: yes
@@ -60,39 +78,107 @@
                kubectl label nodes {{ node_name }} dedicated=master
        when: node_type == "mastervm" or node_type == "masternode"
 
-     - name: create virtual interface definitions
+     - name: create virtual interface definitions (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                kubectl create -f $HOME/L2S-M/K8s/interfaces_definitions
-       when: node_type == "mastervm" or node_type == "masternode"
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v1")
 
-     - name: create appropriate service account
+     - name: create virtual interface definitions (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/deployments/custom-installation/interfaces_definitions
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: create appropriate service account (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                kubectl create -f $HOME/L2S-M/operator/deploy/config/
-       when: node_type == "mastervm" or node_type == "masternode"
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v1")
 
-     - name: create persistent volume
+     - name: create appropriate service account (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/deployments/config/
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: create persistent volume (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                kubectl create -f $HOME/L2S-M/operator/deploy/mysql/
-       when: node_type == "mastervm" or node_type == "masternode"
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v1")
 
-     - name: deploy L2S-M operator
+     - name: create persistent volume (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/deployments/custom-installation/mysql/
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: deploy L2S-M controller (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/deployments/custom-installation/deployController.yaml
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: make sure controller pod is running (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # remove completed pods
+               KUBECONFIG=~/.kube/config kubectl delete pods --field-selector=status.phase==Succeeded
+               # check status of remaining pods
+               KUBECONFIG=~/.kube/config kubectl wait --for=condition=Ready pods --all
+       register: controller_pod_ready
+       until: controller_pod_ready is not failed
+       retries: 50
+       delay: 5
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: deploy L2S-M operator (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                kubectl create -f $HOME/L2S-M/operator/deploy/deployOperator.yaml
-       when: node_type == "mastervm" or node_type == "masternode"
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v1")
 
-     - name: deploy OVS daemonset
+     - name: deploy L2S-M operator (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/deployments/custom-installation/deployOperator.yaml
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: make sure operator pod is running (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # remove completed pods
+               KUBECONFIG=~/.kube/config kubectl delete pods --field-selector=status.phase==Succeeded
+               # check status of remaining pods
+               KUBECONFIG=~/.kube/config kubectl wait --for=condition=Ready pods --all
+       register: operator_pod_ready
+       until: operator_pod_ready is not failed
+       retries: 50
+       delay: 5
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: deploy OVS daemonset (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                kubectl create -f $HOME/L2S-M/operator/daemonset
-       when: node_type == "mastervm" or node_type == "masternode"
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v1")
 
-
+     - name: deploy OVS daemonset (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               kubectl create -f $HOME/L2S-M/deployments/custom-installation/deploySwitch.yaml
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
