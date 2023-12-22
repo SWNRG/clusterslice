@@ -19,11 +19,24 @@ node_ip=$NODE_IP
 node_type=$NODE_TYPE
 node_osimage=$NODE_OSIMAGE
 node_mac=$NODE_MAC
-kubernetes_type=$KUBERNETES_TYPE
-kubernetes_networkfabric=$KUBERNETES_NETWORKFABRIC
-kubernetes_version=$KUBERNETES_VERSION
-containerd_version=$CONTAINERD_VERSION
-critools_version=$CRITOOLS_VERSION
+
+# define, only if their are not set
+if [[ -z $kubernetes_type ]]; then
+   kubernetes_type=$KUBERNETES_TYPE
+fi
+if [[ -z $kubernetes_networkfabric ]]; then
+   kubernetes_networkfabric=$KUBERNETES_NETWORKFABRIC
+fi
+if [[ -z $kubernetes_version ]]; then
+   kubernetes_version=$KUBERNETES_VERSION
+fi
+if [[ -z $containerd_version ]]; then
+   containerd_version=$CONTAINERD_VERSION
+fi
+if [[ -z $critools_version ]]; then
+   critools_version=$CRITOOLS_VERSION
+fi
+
 admin_username=$ADMIN_USERNAME
 admin_password=$ADMIN_PASSWORD
 

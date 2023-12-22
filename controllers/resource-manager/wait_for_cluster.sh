@@ -9,7 +9,12 @@ source $main_path/basic_functions.sh
 # import input variables
 node_name=$NODE_NAME
 node_type=$NODE_TYPE
-kubernetes_type=$KUBERNETES_TYPE
+
+# define only if it is not set
+if [[ -z $kubernetes_type ]]; then
+   kubernetes_type=$KUBERNETES_TYPE
+fi
+
 admin_username=$ADMIN_USERNAME
 
 # import playbook functions
