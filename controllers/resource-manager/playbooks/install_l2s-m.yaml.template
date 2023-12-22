@@ -196,6 +196,20 @@
                $HOME/create_switch_config.sh > $HOME/switch_config.json
        when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
 
+     - name: make sure switch pods are running (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               # remove completed pods
+               KUBECONFIG=~/.kube/config kubectl delete pods --field-selector=status.phase==Succeeded
+               # check status of remaining pods
+               KUBECONFIG=~/.kube/config kubectl wait --for=condition=Ready pods --all
+       register: switch_pods_ready
+       until: switch_pods_ready is not failed
+       retries: 50
+       delay: 5
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
      - name: configure all switches (v2)
        become: yes
        become_user: "{{ admin_username }}"
