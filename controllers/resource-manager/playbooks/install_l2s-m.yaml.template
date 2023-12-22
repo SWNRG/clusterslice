@@ -188,12 +188,18 @@
                kubectl create -f $HOME/L2S-M/deployments/custom-installation/deploySwitch.yaml
        when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
 
-     - name: create switch_config.json and configure all switches (v2)
+     - name: create switch_config.json (v2)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                chmod +x $HOME/*.sh
                $HOME/create_switch_config.sh > $HOME/switch_config.json
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: configure all switches (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
                $HOME/configure_switches.sh
        register: switch_configuration_output
        when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
