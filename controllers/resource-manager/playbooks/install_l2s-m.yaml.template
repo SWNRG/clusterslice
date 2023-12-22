@@ -55,18 +55,13 @@
        with_fileglob:
          - "l2sm/create_switch_config.sh"
          - "l2sm/configure_switches.sh"
-       when: app_version == "v1"
-
-     - name: convert shell scripts to executable 
-       become: yes
-       become_user: "{{ admin_username }}"
-       shell: |
-               chmod +x /home/{{ admin_username }}/*.sh
+       when: app_version == "v2"
 
      - name: create vxlan interfaces and veth pairs (v1)
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
+               chmod +x $HOME/create_vxlan_file.sh
                $HOME/create_vxlan_file.sh {{ node_ip }} > $HOME/L2S-M/K8s/provision/vxlans.txt
                sudo sh $HOME/L2S-M/K8s/provision/set-interfaces.sh {{ tunnel_interface }} $HOME/L2S-M/K8s/provision/vxlans.txt
        when: app_version == "v1"
@@ -197,11 +192,12 @@
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
+               chmod +x $HOME/*.sh
                $HOME/create_switch_config.sh > $HOME/switch_config.json
                $HOME/configure_switches.sh
        register: switch_configuration_output
-       when: app_version == "v2"
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
 
      - name: Show switch configuration output
        debug: var=switch_configuration_output
-       when: app_version == "v2"
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
