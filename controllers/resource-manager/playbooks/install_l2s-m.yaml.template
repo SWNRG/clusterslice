@@ -186,14 +186,7 @@
        become_user: "{{ admin_username }}"
        shell: |
                kubectl create -f $HOME/L2S-M/deployments/custom-installation/deploySwitch.yaml
-       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
-
-     - name: create switch_config.json (v2)
-       become: yes
-       become_user: "{{ admin_username }}"
-       shell: |
-               chmod +x $HOME/*.sh
-               $HOME/create_switch_config.sh > $HOME/switch_config.json
+               sleep 5
        when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
 
      - name: make sure switch pods are running (v2)
@@ -208,6 +201,14 @@
        until: switch_pods_ready is not failed
        retries: 50
        delay: 5
+       when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: create switch_config.json (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               chmod +x $HOME/*.sh
+               $HOME/create_switch_config.sh > $HOME/switch_config.json
        when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
 
      - name: configure all switches (v2)
