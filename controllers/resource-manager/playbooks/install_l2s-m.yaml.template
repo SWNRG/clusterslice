@@ -46,12 +46,22 @@
          - "l2sm/create_vxlan_file.sh"
        when: app_version == "v1"
 
-     - name: convert shell scripts to executable (v1)
+     - name: upload l2s-m configuration scripts (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       ansible.builtin.copy:
+         src: "{{ item }}"
+         dest: "/home/{{ admin_username }}/"
+       with_fileglob:
+         - "l2sm/create_switch_config.sh"
+         - "l2sm/configure_switches.sh"
+       when: app_version == "v1"
+
+     - name: convert shell scripts to executable 
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
                chmod +x /home/{{ admin_username }}/*.sh
-       when: app_version == "v1"
 
      - name: create vxlan interfaces and veth pairs (v1)
        become: yes
@@ -182,3 +192,16 @@
        shell: |
                kubectl create -f $HOME/L2S-M/deployments/custom-installation/deploySwitch.yaml
        when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
+
+     - name: create switch_config.json and configure all switches (v2)
+       become: yes
+       become_user: "{{ admin_username }}"
+       shell: |
+               $HOME/create_switch_config.sh > $HOME/switch_config.json
+               $HOME/configure_switches.sh
+       register: switch_configuration_output
+       when: app_version == "v2"
+
+     - name: Show switch configuration output
+       debug: var=switch_configuration_output
+       when: app_version == "v2"
