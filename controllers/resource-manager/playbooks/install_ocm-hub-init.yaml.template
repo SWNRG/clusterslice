@@ -23,7 +23,7 @@
        become: yes
        become_user: "{{ admin_username }}"
        shell: |
-               clusteradm init --wait --context kubernetes-admin@kubernetes
+               clusteradm init --wait 
        ignore_errors: true
 
      - name: create cluster join script secret (execute on managed clusters)

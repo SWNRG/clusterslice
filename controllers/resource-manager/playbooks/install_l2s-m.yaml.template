@@ -186,7 +186,7 @@
        become_user: "{{ admin_username }}"
        shell: |
                kubectl create -f $HOME/L2S-M/deployments/custom-installation/deploySwitch.yaml
-               sleep 5
+               sleep 2
        when: (node_type == "mastervm" or node_type == "masternode") and (app_version == "v2")
 
      - name: make sure switch pods are running (v2)
