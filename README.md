@@ -28,7 +28,7 @@ It introduces well-designed abstractions that reduce experimentation complexity 
 
 # References
 Please cite these papers, if you use ClusterSlice:
-- L.Mamatas, S.Skaperas, and I.Sakellariou, "[ClusterSlice: Slicing Resources for Zero-touch Kubernetes-based Experimentation](https://ruomo.lib.uom.gr/handle/7000/1757)", Technical Report, University of Macedonia, https://ruomo.lib.uom.gr/handle/7000/1757, November 2023.
+- L. Mamatas, S. Skaperas, and I. Sakellariou, "[ClusterSlice: Slicing Resources for Zero-touch Kubernetes-based Experimentation](https://ruomo.lib.uom.gr/handle/7000/1757)", Technical Report, University of Macedonia, https://ruomo.lib.uom.gr/handle/7000/1757, November 2023.
 - L. Mamatas, S. Skaperas, I. Sakellariou, "[ClusterSlice: A Zero-touch Deployment Platform for the Edge Cloud Continuum](https://swn.uom.gr/storage/app/media/publications/poster/2024/clusterslice_icin_demo.pdf)", 27th Conference on Innovation in Clouds, Internet and Networks (ICIN 2024), March 11-14, Paris, France, 2024 (Demo Paper).
 
 # Support
