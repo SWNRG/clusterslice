@@ -41,4 +41,4 @@ ClusterSlice is released under the [Eclipse Public License 2.0](./LICENSE).
 
 # Acknowledgement
 
-This software was partially supported by the Greek Ministry of Education and Religious Affairs for the project "Enhancing Research and optimizing University of Macedonia’s administrative operation".
+This software was partially supported by the Greek Ministry of Education and Religious Affairs for the project "Enhancing Research and optimizing University of Macedonia’s administrative operation" and by the University of Macedonia's Research Fund for the project "Experimental Assessment of Network And Compute Resource Optimization Methods (NCOPT)".
