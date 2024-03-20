@@ -26,7 +26,18 @@ if [[ -z $kubernetes_type ]]; then
 fi
 if [[ -z $kubernetes_networkfabric ]]; then
    kubernetes_networkfabric=$KUBERNETES_NETWORKFABRIC
+   if [[ -z "$kubernetes_networkfabric" ]] || [[ $kubernetes_networkfabric == "" ]]; then
+     kubernetes_networkfabric="none"
+   fi
 fi
+
+if [[ -z $kubernetes_networkfabric ]]; then
+   kubernetes_networkfabricparameters=$KUBERNETES_NETWORKFABRICPARAMETERS
+   if [[ -z "$kubernetes_networkfabricparameters" ]] || [[ $kubernetes_networkfabricparameters == "" ]]; then
+     kubernetes_networkfabricparameters="none"
+   fi
+fi
+
 if [[ -z $kubernetes_version ]]; then
    kubernetes_version=$KUBERNETES_VERSION
 fi
@@ -45,7 +56,7 @@ source $main_path/playbook_functions.sh
 
 if [[ $node_type == "workervm" ]] || [[ $node_type == "workernode" ]]; then
   # installing kubernetes worker, depending on the requested type
-  install_kubernetes_worker $node_name $admin_username $kubernetes_type $kubernetes_networkfabric
+  install_kubernetes_worker $node_name $admin_username $kubernetes_type $kubernetes_networkfabric "$kubernetes_networkfabricparameters"
 
   if [ $? -ne 0 ]; then
     echo "Cannot create slice"

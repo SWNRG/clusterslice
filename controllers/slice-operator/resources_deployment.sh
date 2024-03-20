@@ -4,6 +4,7 @@
 # clusterslice_name
 # kubernetes_type
 # kubernetes_networkfabric
+# kubernetes_networkfabricparameters
 # kubernetes_networkcidr
 # kubernetes_servicecidr
 # kubernetes_version
@@ -55,6 +56,11 @@ function create_pod_yaml () {
   appparameters="${appparameters//[%]/' '}"
   # escape single quote to double quote
   appparameters="${appparameters//[\']/'\"'}"
+
+  # fix networkfabricparameters space issue
+  kubernetes_networkfabricparameters="${kubernetes_networkfabricparameters//[%]/' '}"
+  # escape single quote to double quote
+  kubernetes_networkfabricparameters="${kubernetes_networkfabricparameters//[\']/'\"'}"
 
 cat > $filename << EOF
 apiVersion: v1                                       
@@ -117,6 +123,8 @@ spec:
       value: $kubernetes_type
     - name: KUBERNETES_NETWORKFABRIC
       value: $kubernetes_networkfabric
+    - name: KUBERNETES_NETWORKFABRICPARAMETERS
+      value: '$kubernetes_networkfabricparameters'
     - name: KUBERNETES_NETWORKCIDR
       value: $kubernetes_networkcidr
     - name: KUBERNETES_SERVICECIDR

@@ -37,6 +37,15 @@ echo "    kubernetesversion: \"$kubernetes_version\""
 echo "    containerdversion: \"$containerd_version\""
 echo "    critoolsversion: \"$critools_version\""
 echo "    networkfabric: \"$kubernetes_networkfabric\""
+
+# replace back space character
+kubernetes_networkfabricparameters="${kubernetes_networkfabricparameters//[%]/' '}"
+if [[ ! "$kubernetes_networkfabricparameters" == null ]]; then
+  echo "    networkfabricparameters: \"$kubernetes_networkfabricparameters\""
+else
+  echo "    networkfabricparameters: \"none\""
+fi
+
 echo "    networkcidr: \"$kubernetes_networkcidr\""
 echo "    servicecidr: \"$kubernetes_servicecidr\""
 echo "  infrastructure:"

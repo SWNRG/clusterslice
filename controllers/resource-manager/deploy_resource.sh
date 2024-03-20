@@ -95,7 +95,7 @@ else
         apiserver=$node_secondaryip 
      fi
 
-     install_kubernetes_master $node_name $admin_username $clusterslice_name $kubernetes_type $kubernetes_networkfabric $kubernetes_networkcidr $kubernetes_servicecidr $testbed_namespace $masters_num $workers_num $apiserver
+     install_kubernetes_master $node_name $admin_username $clusterslice_name $kubernetes_type $kubernetes_networkfabric "$kubernetes_networkfabricparameters" $kubernetes_networkcidr $kubernetes_servicecidr $testbed_namespace $masters_num $workers_num $apiserver
 
      if [ $? -ne 0 ]; then
        echo "Cannot create slice"

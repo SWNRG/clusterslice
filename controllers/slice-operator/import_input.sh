@@ -21,6 +21,11 @@ admin_password=$(jq -r ".credentials.password" $input)
 
 kubernetes_type=$(jq -r ".kubernetes.kubernetestype" $input)
 kubernetes_networkfabric=$(jq -r ".kubernetes.networkfabric" $input)
+
+kubernetes_networkfabricparameters=$(jq -r ".kubernetes.networkfabricparameters" $input)
+# replace temporary space character, because it causes issues with bash arrays
+kubernetes_networkfabricparameters="${kubernetes_networkfabricparameters//[ ]/'%'}"
+
 kubernetes_networkcidr=$(jq -r ".kubernetes.networkcidr" $input)
 kubernetes_servicecidr=$(jq -r ".kubernetes.servicecidr" $input)
 kubernetes_version=$(jq -r ".kubernetes.kubernetesversion" $input)

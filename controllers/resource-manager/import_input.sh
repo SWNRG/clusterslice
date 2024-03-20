@@ -22,6 +22,9 @@ cloud_operator=$CLOUD_OPERATOR
 # kubernetes details
 kubernetes_type=$KUBERNETES_TYPE
 kubernetes_networkfabric=$KUBERNETES_NETWORKFABRIC
+
+kubernetes_networkfabricparameters=$KUBERNETES_NETWORKFABRICPARAMETERS
+
 kubernetes_networkcidr=$KUBERNETES_NETWORKCIDR
 kubernetes_servicecidr=$KUBERNETES_SERVICECIDR
 kubernetes_version=$KUBERNETES_VERSION
@@ -62,6 +65,14 @@ validate_input cloud_operator "CLOUD_OPERATOR" "none"
 # Validate Kubernetes details
 validate_input kubernetes_type "KUBERNETES_TYPE" "none"
 validate_input kubernetes_networkfabric "KUBERNETES_NETWORKFABRIC" "none"
+
+# validate networkfabric parameters
+# if they are json arrays
+# remove double quote escaping
+#fabric_parameters_cleaned_json=$(echo "$kubernetes_networkfabricparameters" | sed 's/\\"/"/g')
+#validate_json_array "$fabric_parameters_cleaned_json"
+validate_input kubernetes_networkfabricparameters "KUBERNETES_NETWORKFABRICPARAMETERS" "none"
+
 validate_input kubernetes_networkcidr "KUBERNETES_NETWORKCIDR" "10.244.0.0/16"
 validate_input kubernetes_servicecidr "KUBERNETES_SERVICECIDR" "10.96.0.0/12"
 validate_input kubernetes_version "KUBERNETES_VERSION" "none"

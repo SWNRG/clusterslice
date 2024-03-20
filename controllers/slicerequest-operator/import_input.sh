@@ -53,6 +53,7 @@ kubernetes_json=$(jq -r ".kubernetes" $input)
 if [[ $kubernetes_json == "" ]] || [[ $kubernetes_json == "null" ]]; then
   kubernetes_type="none"
   kubernetes_networkfabric="none"
+  kubernetes_networkfabricparameters="none"
   kubernetes_networkcidr="none"
   kubernetes_servicecidr="none"
   kubernetes_version="none"
@@ -66,6 +67,13 @@ else
   kubernetes_networkfabric=$(jq -r ".kubernetes.networkfabric" $input)
   if [[ $kubernetes_networkfabric == "" ]] || [[ $kubernetes_networkfabric == "null" ]]; then
     kubernetes_networkfabric="none"
+  fi
+  kubernetes_networkfabricparameters=$(jq -r ".kubernetes.networkfabricparameters" $input)
+  if [[ $kubernetes_networkfabricparameters == "" ]] || [[ $kubernetes_networkfabricparameters == "null" ]]; then
+    kubernetes_networkfabricparameters="none"
+  else
+    # replace temporary space character, because it causes issues with bash arrays
+    kubernetes_networkfabricparameters="${kubernetes_networkfabricparameters//[ ]/'%'}"
   fi
   kubernetes_networkcidr=$(jq -r ".kubernetes.networkcidr" $input)
   if [[ $kubernetes_networkcidr == "" ]] || [[ $kubernetes_networkcidr == "null" ]]; then
