@@ -72,6 +72,11 @@ do
 
   kubernetes_type=$(jq -r ".clusters[$clustercount].kubernetes.kubernetestype" $input)
   kubernetes_networkfabric=$(jq -r ".clusters[$clustercount].kubernetes.networkfabric" $input)
+
+  kubernetes_networkfabricparameters=$(jq -r ".clusters[$clustercount].kubernetes.networkfabricparameters" $input)
+  # replace temporary space character, because it causes issues with bash arrays
+  kubernetes_networkfabricparameters="${kubernetes_networkfabricparameters//[ ]/'%'}"
+
   kubernetes_version=$(jq -r ".clusters[$clustercount].kubernetes.kubernetesversion" $input)
   containerd_version=$(jq -r ".clusters[$clustercount].kubernetes.containerdversion" $input)
   critools_version=$(jq -r ".clusters[$clustercount].kubernetes.critoolsversion" $input)

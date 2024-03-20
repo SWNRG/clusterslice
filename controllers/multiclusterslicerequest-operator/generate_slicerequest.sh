@@ -49,6 +49,13 @@ if [[ "$kubernetes_networkfabric" == null ]]; then
 else
    echo "    networkfabric: \"$kubernetes_networkfabric\""
 fi
+
+if [[ "$kubernetes_networkfabricparameters" == null ]]; then
+   echo "    networkfabricparameters: \"\""
+else
+   echo "    networkfabricparameters: \"$kubernetes_networkfabricparameters\""
+fi
+
 if [[ "$kubernetes_networkcidr" == null ]]; then
    echo "    networkcidr: \"\""
 else
