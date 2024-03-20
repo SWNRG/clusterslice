@@ -131,6 +131,8 @@ spec:
                         - weavenet
                         - kubeovn
                         - antrea
+                    networkfabricparameters:
+                      type: string
                     networkcidr:
                       type: string
                       default: "10.244.0.0/16"

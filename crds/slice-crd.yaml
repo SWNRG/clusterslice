@@ -72,6 +72,8 @@ spec:
                        type: string
                     networkfabric:
                        type: string
+                    networkfabricparameters:
+                       type: string
                     networkcidr:
                        type: string
                     servicecidr:
