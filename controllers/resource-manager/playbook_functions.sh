@@ -118,7 +118,10 @@ function import_vm_from_template () {
       kubectl exec $operator -- cat /tmp/output-$vm.txt
     else
       # execute IM scripts that have been mounted locally in resource manager
-      /opt/clusterslice/$operator/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
+      # create softlink to appropriate infrastructure manager
+      ln -s /opt/clusterslice/$operator /root 
+
+      /root/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
       retcode=$?
 
       echo "returned code $retcode"
