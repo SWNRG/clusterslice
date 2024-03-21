@@ -105,13 +105,27 @@ function import_vm_from_template () {
     # request the particular operator to create the vm from template
     echo "Triggering operator $operator to request from cloud server $cloud_server to create VM $vm with mac $mac from template $template."
 
-    kubectl exec $operator -- /root/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
-    retcode=$?
+    # in the case of k8s, access container, otherwise IM scripts have been 
+    # mounted locally in resource managers
 
-    echo "returned code $retcode"
+    if $k8s; then
+      kubectl exec $operator -- /root/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
+      retcode=$?
 
-    # show output
-    kubectl exec $operator -- cat /tmp/output-$vm.txt
+      echo "returned code $retcode"
+
+      # show output
+      kubectl exec $operator -- cat /tmp/output-$vm.txt
+    else
+      # execute IM scripts that have been mounted locally in resource manager
+      /opt/clusterslice/$operator/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
+      retcode=$?
+
+      echo "returned code $retcode"
+
+      # show output
+      cat /tmp/output-$vm.txt
+    fi
 
     # terminate deploying slice, in the case ssh returns an error code
     if [[ $retcode -eq 0 ]]; then
@@ -199,12 +213,13 @@ function install_kubernetes_master () {
   local clusterslice_name=$3
   local kubernetes_type=$4
   local network_fabric=$5
-  local network_cidr=$6
-  local service_cidr=$7
-  local testbednamespace=$8
-  local mastersnum=$9
-  local workersnum=${10}
-  local apiserver=${11}
+  local network_fabric_parameters=$6
+  local network_cidr=$7
+  local service_cidr=$8
+  local testbednamespace=$9
+  local mastersnum=${10}
+  local workersnum=${11}
+  local apiserver=${12}
 
   # if no clusterslice_name is passed, define it as "manual" slice, i.e., created by manual_update_nodes.sh.
   if [[ -z $clusterslice_name ]]; then 
@@ -215,7 +230,36 @@ function install_kubernetes_master () {
 
   # create and set install_kubernetes_master.yaml playbook
   echo "*** Creating and updating install_kubernetes_master.yaml playbook ***"
-  template_parameters=("{@host@},$node_name {@username@},$admin_username {@kubernetestype@},$kubernetes_type {@clusterslicename@},$clusterslice_name {@networkfabric@},$network_fabric {@networkcidr@},$network_cidr {@servicecidr@},$service_cidr {@testbednamespace@},$testbednamespace {@mastersnum@},$mastersnum {@workersnum@},$workersnum {@apiserver@},$apiserver")
+
+  # adding all key-value parameters in a bash array
+  template_parameters=()
+  template_parameters+=({@host@},$node_name)
+  template_parameters+=({@username@},$admin_username)
+  template_parameters+=({@kubernetestype@},$kubernetes_type)
+  template_parameters+=({@clusterslicename@},$clusterslice_name)
+  template_parameters+=({@networkfabric@},$network_fabric)
+  template_parameters+=({@networkcidr@},$network_cidr)
+  template_parameters+=({@servicecidr@},$service_cidr)
+  template_parameters+=({@testbednamespace@},$testbednamespace)
+  template_parameters+=({@mastersnum@},$mastersnum)
+  template_parameters+=({@workersnum@},$workersnum)
+  template_parameters+=({@apiserver@},$apiserver)
+
+  #template_parameters=("{@host@},$node_name {@username@},$admin_username {@kubernetestype@},$kubernetes_type {@clusterslicename@},$clusterslice_name {@networkfabric@},$network_fabric {@networkcidr@},$network_cidr {@servicecidr@},$service_cidr {@testbednamespace@},$testbednamespace {@mastersnum@},$mastersnum {@workersnum@},$workersnum {@apiserver@},$apiserver")
+
+
+  # remove escape characters from network_fabric_parameters
+  network_fabric_parameters=$(echo "$network_fabric_parameters" | sed 's/\\//g')
+
+  # adding passed network fabric key-value parameters from yaml
+  if [[ $network_fabric_parameters != "none" ]]; then
+     echo "Passing additional parameters for kubernetes fabric: $network_fabric_parameters"
+     passed_parameters=$(echo $network_fabric_parameters | jq -r 'to_entries|map("{@\(.key)@},\(.value)")|.[]')
+     for parameter in $passed_parameters; do
+       # add passed parameter
+       template_parameters+=($parameter)
+     done
+  fi
 
   create_playbook "install_kubernetes_master.yaml" template_parameters
   echo ""
@@ -278,12 +322,25 @@ function install_kubernetes_worker () {
   local admin_username=$2
   local kubernetestype=$3
   local network_fabric=$4
+  local network_fabric_parameters=$5
 
   echo "Installing kubernetes worker in host $host with username $admin_username and kubernetes type $kubernetestype."
 
   # create and set install_kubernetes_worker.yaml playbook
   echo "*** Creating and updating install_kubernetes_worker.yaml playbook ***"
   template_parameters=("{@host@},$host {@username@},$admin_username {@kubernetestype@},$kubernetestype {@networkfabric@},$network_fabric")
+
+  # remove escape characters from network_fabric_parameters
+  network_fabric_parameters=$(echo "$network_fabric_parameters" | sed 's/\\//g')
+
+  # adding passed network fabric key-value parameters from yaml
+  if [[ $network_fabric_parameters != "none" ]]; then
+     passed_parameters=$(echo $network_fabric_parameters | jq -r 'to_entries|map("{@\(.key)@},\(.value)")|.[]')
+     for parameter in $passed_parameters; do
+       # add passed parameter
+       template_parameters+=($parameter)
+     done
+  fi
 
   create_playbook "install_kubernetes_worker.yaml" template_parameters
   echo ""
