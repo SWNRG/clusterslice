@@ -8,11 +8,37 @@
     node_name: {@node@}
     private_registry: "true"
     private_registry_name: "brecht.swn.uom.gr:5000"
+    llm_snapshot: "false"
+    llm_snapshot_size: "5G"
     kubernetestype: {@kubernetestype@}
     #ansible_shell_type: sh
     #ansible_terminal_type: dumb
 
   tasks:
+    - name: configure LLM snapshot support
+      become: yes
+      shell: |
+              # creating LLM snapshot
+              sudo lvcreate -L {{ llm_snapshot_size }} -n ubuntu_clean_snapshot -s /dev/ubuntu-vg/ubuntu-lv
+              # create snapshot restoration service
+              cat <<EOF > /etc/systemd/system/snapshot-restore.service
+              [Unit]
+              Description=Restore LVM snapshot during boot
+              Requires=lvm2-lvmetad.socket
+              After=lvm2-lvmetad.service
+
+              [Service]
+              Type=oneshot
+              ExecStart=/usr/sbin/lvconvert --merge /dev/ubuntu-vg/ubuntu_clean_snapshot
+
+              [Install]
+              WantedBy=multi-user.target
+              EOF
+              # start the service
+              sudo systemctl enable snapshot-restore.service
+              sudo systemctl daemon-reload
+      when: llm_snapshot == "true"
+
     - name: Disable automatic updates
       lineinfile:
         dest: /etc/apt/apt.conf.d/20auto-upgrades
