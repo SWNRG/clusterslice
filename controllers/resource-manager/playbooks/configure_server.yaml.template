@@ -8,18 +8,18 @@
     node_name: {@node@}
     private_registry: "true"
     private_registry_name: "brecht.swn.uom.gr:5000"
-    llm_snapshot: "false"
-    llm_snapshot_size: "5G"
+    lvm_snapshot: "false"
+    lvm_snapshot_size: "5G"
     kubernetestype: {@kubernetestype@}
     #ansible_shell_type: sh
     #ansible_terminal_type: dumb
 
   tasks:
-    - name: configure LLM snapshot support
+    - name: configure LVM snapshot support
       become: yes
       shell: |
-              # creating LLM snapshot
-              sudo lvcreate -L {{ llm_snapshot_size }} -n ubuntu_clean_snapshot -s /dev/ubuntu-vg/ubuntu-lv
+              # creating LVM snapshot
+              sudo lvcreate -L {{ lvm_snapshot_size }} -n ubuntu_clean_snapshot -s /dev/ubuntu-vg/ubuntu-lv
               # create snapshot restoration service
               cat <<EOF > /etc/systemd/system/snapshot-restore.service
               [Unit]
@@ -37,7 +37,7 @@
               # start the service
               sudo systemctl enable snapshot-restore.service
               sudo systemctl daemon-reload
-      when: llm_snapshot == "true"
+      when: lvm_snapshot == "true"
 
     - name: Disable automatic updates
       lineinfile:
