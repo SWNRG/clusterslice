@@ -58,7 +58,9 @@ else
    change_nonk8s_resource_status "install_apps"
    echo "trigger installing applications"
    source /opt/clusterslice/deploy_applications.sh
-   # terminate IM (in the case of non k8s deployment)
-   /root/terminate.sh
+   # terminate IM when the master node completes (in the case of non k8s deployment)
+   if [[ $node_type == "mastervm" ]] || [[ $node_type == "masternode" ]]; then
+     /root/terminate.sh
+   fi
 fi
 
