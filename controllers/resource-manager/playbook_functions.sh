@@ -119,7 +119,15 @@ function import_vm_from_template () {
     else
       # execute IM scripts that have been mounted locally in resource manager
       # create softlink to appropriate infrastructure manager
-      ln -s /opt/clusterslice/$operator /root 
+      ln -s /opt/clusterslice/$operator/* /root/ 
+      
+      # create IM termination script
+      cat << EOF > /root/terminate.sh
+#!/bin/bash
+
+touch /opt/clusterslice/$operator/completed
+EOF
+      chmod +x /root/terminate.sh
 
       /root/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
       retcode=$?
