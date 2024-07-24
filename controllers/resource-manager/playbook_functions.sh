@@ -152,10 +152,10 @@ EOF
   echo "Waiting for node $vm to boot up."
   if [[ $ip == "none" ]] || [[ $ip == "" ]]; then
     # wait for secondary ip
-    wait_for_node_to_bootup user@$secondaryip
+    wait_for_node_to_bootup $node_osaccount@$secondaryip
   else
     # wait for public ip
-    wait_for_node_to_bootup user@$ip
+    wait_for_node_to_bootup $node_osaccount@$ip
   fi
   #echo "Node is now up."
 }
@@ -181,8 +181,6 @@ function configure_server () {
   else
      exit 1
   fi
-
-  #wait_for_node_to_bootup user@$2
 }
 
 function install_kubernetes_base () {

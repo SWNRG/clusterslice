@@ -45,6 +45,9 @@ fi
 if $enable_virtualbox; then
   source ./build_controller.sh infrastructure-manager-virtualbox
 fi
+if $enable_aws; then
+  source ./build_controller.sh infrastructure-manager-aws
+fi
 if $enable_cloudlab; then
   source ./build_controller.sh infrastructure-manager-cloudlab
 fi
@@ -69,6 +72,7 @@ kubectl delete pod/slicerequest-operator -n swn 2> /dev/null
 kubectl delete pod/slice-operator -n swn 2> /dev/null
 kubectl delete pod/infrastructure-manager-xcpng -n swn 2> /dev/null
 kubectl delete pod/infrastructure-manager-virtualbox -n swn 2> /dev/null
+kubectl delete pod/infrastructure-manager-aws -n swn 2> /dev/null
 kubectl delete pod/infrastructure-manager-cloudlab -n swn 2> /dev/null
 kubectl delete pod/infrastructure-manager-apt -n swn 2> /dev/null
 kubectl delete pod/infrastructure-manager-wisconsin -n swn 2> /dev/null
@@ -87,6 +91,9 @@ if $enable_xcpng; then
 fi
 if $enable_virtualbox; then
   kubectl apply -f infrastructure-manager-virtualbox-pod.yaml
+fi
+if $enable_aws; then
+  kubectl apply -f infrastructure-manager-aws-pod.yaml
 fi
 if $enable_cloudlab; then
   kubectl apply -f infrastructure-manager-cloudlab-pod.yaml
