@@ -7,7 +7,7 @@ spec:
   restartPolicy: Never
   containers:                                        
   - name: infrastructure-manager-cloudlab                 
-    image: swnrg/infrastructure-manager-cloudlab
+    image: swnuom/infrastructure-manager-cloudlab
     env:
     - name: CLOUDLAB_USER
       value: "lmamatas"

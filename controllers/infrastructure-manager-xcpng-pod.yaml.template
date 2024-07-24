@@ -7,7 +7,7 @@ spec:
   restartPolicy: Never
   containers:                                        
   - name: infrastructure-manager-xcpng                   
-    image: swnrg/infrastructure-manager-xcpng
+    image: swnuom/infrastructure-manager-xcpng
     command: [ "/bin/bash", "-c", "--" ]
     args: [ "/root/start.sh" ]
     imagePullPolicy: Always

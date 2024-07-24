@@ -7,7 +7,7 @@ spec:
   restartPolicy: Never
   containers:                                        
   - name: infrastructure-manager-virtualbox                  
-    image: swnrg/infrastructure-manager-virtualbox
+    image: swnuom/infrastructure-manager-virtualbox
     command: [ "/bin/bash", "-c", "--" ]
     args: [ "/root/start.sh" ]
     imagePullPolicy: Always

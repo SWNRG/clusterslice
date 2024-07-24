@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
   - name: slicerequest-operator
-    image: swnrg/slicerequest-operator:latest
+    image: swnuom/slicerequest-operator:latest
     imagePullPolicy: Always
     env:
     - name: LOG_TYPE

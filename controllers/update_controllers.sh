@@ -6,7 +6,7 @@ source common_scripts/configuration.sh
 # check if image prefix configuration is set
 if [[ -z "$image_prefix" ]]; then
   # define default image prefix
-  image_prefix="swnrg"
+  image_prefix="swnuom"
 else
   # Loop through each .yaml.template file
   for template_file in *.yaml.template; do
@@ -14,7 +14,7 @@ else
     yaml_file="${template_file%.template}"
 
     # Replace the string and write to the .yaml file
-    sed "s/swnrg/${image_prefix}/g" "${template_file}" > "${yaml_file}"
+    sed "s/swnuom/${image_prefix}/g" "${template_file}" > "${yaml_file}"
   done
 fi
 
