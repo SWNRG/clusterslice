@@ -201,8 +201,8 @@ first_master_secondaryip=$(json_array_item "$MASTER_PRIVATEIPS" 0)
 # create ansible hosts file, example:
 # kubem1 ansible_ssh_host=195.251.209.228 ansible_ssh_port=22 ansible_ssh_user=user
 # node_name, node_ip, node_osaccount, $main_path/ansible/hosts
-# do that for k8s execution, only
-if $k8s; then
+# do that for both k8s and non-k8s executions
+#if $k8s; then
   echo "creating ansible file for host."
   if [[ $node_ip == "none" ]] || [[ $node_ip == "" ]]; then
     # no public ip is present, use secondary ip instead
@@ -210,7 +210,7 @@ if $k8s; then
   else
     echo "$node_name ansible_ssh_host=${node_ip} ansible_ssh_port=22 ansible_ssh_user=$node_osaccount" > $main_path/ansible/hosts
   fi
-fi
+#fi
 #echo "" >> $main_path/ansible/hosts
 #echo "[all:vars]" >> $main_path/ansible/hosts
 #echo "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> $main_path/ansible/hosts

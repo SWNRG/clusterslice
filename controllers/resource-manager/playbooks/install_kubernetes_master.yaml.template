@@ -50,6 +50,7 @@
         dest: /home/{{ created_username }}/.kube/config
         remote_src: yes
         owner: "{{ created_username }}"
+        mode: 0700
       when: kubernetestype == "vanilla"
 
     - name: customizing default parameters of kube config

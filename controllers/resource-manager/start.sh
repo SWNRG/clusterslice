@@ -3,6 +3,16 @@
 # configure ssh keys
 source /opt/clusterslice/configure_ssh.sh
 
+# in the case of non-k8s deployments
+# wait until Docker daemon is running
+if [[ ! $k8s ]]; then
+   while ! docker info > /dev/null 2>&1; do
+       echo "Waiting for Docker daemon to be ready..."
+       sleep 1
+   done
+   echo "Docker daemon is ready"
+fi
+
 # deploy the resource
 source /opt/clusterslice/deploy_resource.sh
 

@@ -10,7 +10,7 @@ RUN apk update && \
 WORKDIR /root
 
 # Add required files in /root
-ADD infrastructure-manager-aws/configuration.* /root/
+ADD infrastructure-manager-aws/configuration* /root/
 ADD infrastructure-manager-aws/hostname-* /root/
 ADD infrastructure-manager-aws/create_vm.sh /root/
 ADD infrastructure-manager-aws/prepare_vm.sh /root/

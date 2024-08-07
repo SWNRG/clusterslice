@@ -117,25 +117,37 @@ function import_vm_from_template () {
       # show output
       kubectl exec $operator -- cat /tmp/output-$vm.txt
     else
-      # execute IM scripts that have been mounted locally in resource manager
-      # create softlink to appropriate infrastructure manager
-      ln -s /opt/clusterslice/$operator/* /root/ 
-      
-      # create IM termination script
-      cat << EOF > /root/terminate.sh
-#!/bin/bash
+      # non k8s case
+      im_container_id=$(docker container ls | grep ${operator} | cut -f1 -d" ") 
 
-touch /opt/clusterslice/$operator/completed
-EOF
-      chmod +x /root/terminate.sh
-
-      /root/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
+      docker exec ${im_container_id} /root/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
       retcode=$?
 
       echo "returned code $retcode"
 
       # show output
-      cat /tmp/output-$vm.txt
+      docker exec ${im_container_id} cat /tmp/output-$vm.txt
+	    
+      # execute IM scripts that have been mounted locally in resource manager
+      # create softlink to appropriate infrastructure manager
+      #ln -s /opt/clusterslice/$operator/* /root/ 
+      
+      # create IM termination script
+      cat << EOF > /root/terminate.sh
+#!/bin/bash
+
+# terminate IM
+touch /opt/clusterslice/$operator/completed
+EOF
+      chmod +x /root/terminate.sh
+
+      #/root/deploy_infrastructure_resource.sh $cloud_server $vm $mac $secondarymac $template
+      #retcode=$?
+
+      #echo "returned code $retcode"
+
+      # show output
+      #cat /tmp/output-$vm.txt
     fi
 
     # terminate deploying slice, in the case ssh returns an error code
@@ -178,6 +190,7 @@ function configure_server () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The admin credentials have been set successfully."
+     echo ""
   else
      exit 1
   fi
@@ -208,6 +221,7 @@ function install_kubernetes_base () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The kubernetes basic tools have been installed successfully."
+     echo ""
   else
      exit 1
   fi 
@@ -279,6 +293,7 @@ function install_kubernetes_master () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The kubernetes master has been installed successfully."
+     echo ""
   else
      exit 1
   fi
@@ -320,6 +335,7 @@ function wait_for_cluster () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The kubernetes cluster have been created successfully."
+     echo ""
   else
      exit 1
   fi
@@ -360,6 +376,7 @@ function install_kubernetes_worker () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The kubernetes worker has been installed successfully."
+     echo ""
   else
      echo "Cannot deploy clusterslice."
      exit 1
@@ -396,6 +413,7 @@ function distribute_file () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The application $app_name shared file $app_sharefile successfully."
+     echo ""
   else
      exit 1
   fi
@@ -428,6 +446,7 @@ function wait_for_file () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The file $app_waitforfile appeared successfully."
+     echo ""
   else
      exit 1
   fi
@@ -500,6 +519,7 @@ function install_application () {
   # terminate deploying slice, in the case ansible returns an error code
   if [ $? -eq 0 ]; then
      echo "The application $app_name has been installed and configured successfully."
+     echo ""
   else
      exit 1
   fi
