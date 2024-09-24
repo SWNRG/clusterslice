@@ -202,8 +202,8 @@
       become_user: "{{ created_username }}"
       # installs first flannel
       shell: |
-              kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
-              curl https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/custom-resources.yaml -O
+              kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/tigera-operator.yaml
+              curl https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/custom-resources.yaml -O
               # should update cidr pool configuration
               sed -i 's/      cidr: 192.168.0.0/      cidr: 10.244.0.0/' custom-resources.yaml
               kubectl create -f custom-resources.yaml
@@ -296,8 +296,8 @@
       become: yes
       become_user: "{{ created_username }}"
       shell: |
-              kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
-              curl https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/custom-resources.yaml -O
+              kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/tigera-operator.yaml
+              curl https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/custom-resources.yaml -O
               # should update cidr pool configuration
               sed -i 's/      cidr: 192.168.0.0/      cidr: 10.244.0.0/' custom-resources.yaml
               kubectl create -f custom-resources.yaml
@@ -415,12 +415,22 @@
               grep "alias kc='kubectl'" ~/.bashrc || echo "alias kc='kubectl'" >> ~/.bashrc
       when: kubernetestype == "k3s" or kubernetestype == "k0s"
 
-    - name: create kubectl alias for microk8s
+    #- name: create kubectl alias for microk8s
+    #  become: yes
+    #  become_user: "{{ created_username }}"
+    #  shell: |
+    #          grep "alias kubectl='microk8s kubectl'" ~/.bashrc || echo "alias kubectl='microk8s kubectl'" >> ~/.bashrc
+    #  when: kubernetestype == "microk8s" 
+
+    - name: uploading kubectl wrapper for microk8s
       become: yes
-      become_user: "{{ created_username }}"
-      shell: |
-              grep "alias kubectl='microk8s kubectl'" ~/.bashrc || echo "alias kubectl='microk8s kubectl'" >> ~/.bashrc
-      when: kubernetestype == "microk8s" 
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/opt/clusterslice/bin/"
+      with_fileglob:
+        - "files/toolkit/kubectl"
+      ignore_errors: true
+      when: kubernetestype == "microk8s"
 
     - name: create kubectl alias for vanilla kubernetes
       become: yes

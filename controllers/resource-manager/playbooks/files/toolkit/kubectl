@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# execute the microk8s executable with the provided arguments
+# also remove versioning warning from output.
+
+microk8s kubectl "$@" 2> /dev/null
