@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# import main configuration
+source /opt/clusterslice/configuration.sh
+
 # configure ssh keys
 source /opt/clusterslice/configure_ssh.sh
 
